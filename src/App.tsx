@@ -1,11 +1,20 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import './App.css'
+import { api } from './lib/apiClient'
 
 function App() {
   const [count, setCount] = useState(0)
+  const [apiStatus, setApiStatus] = useState<'checking' | 'up' | 'down'>('checking')
+
+  useEffect(() => {
+    api
+      .get<string>('/api/health')
+      .then(() => setApiStatus('up'))
+      .catch(() => setApiStatus('down'))
+  }, [])
 
   return (
     <>
@@ -19,6 +28,12 @@ function App() {
           <h1>Get started</h1>
           <p>
             Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
+          </p>
+          <p>
+            Backend API:{' '}
+            {apiStatus === 'checking' && 'checking…'}
+            {apiStatus === 'up' && '🟢 connected'}
+            {apiStatus === 'down' && '🔴 unreachable (is the backend running on :8080?)'}
           </p>
         </div>
         <button
