@@ -1,0 +1,88 @@
+.auth-page {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 48px 20px;
+  box-sizing: border-box;
+}
+
+.auth-brand {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+}
+
+.auth-card h1 {
+  font-size: 24px;
+  line-height: 1.33;
+  margin: 0 0 24px;
+  text-align: center;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-footer {
+  margin-top: 16px;
+  font-size: 14px;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.auth-footer a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+.auth-footer a:hover {
+  color: var(--color-primary-hover);
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text-disabled);
+  font-size: 12px;
+  margin: 4px 0;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-split);
+}
+
+.kakao-login {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  height: 32px;
+  padding: 4px 15px;
+  border-radius: var(--radius-control);
+  color: #191919;
+  background: #fee500;
+  border: none;
+  cursor: pointer;
+  transition: box-shadow var(--motion-fast) var(--ease-in-out);
+
+  &:hover {
+    box-shadow: var(--shadow-tertiary);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
