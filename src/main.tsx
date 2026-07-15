@@ -5,19 +5,33 @@ import HomePage from './pages/HomePage.tsx'
 import LoginPage from './pages/LoginPage.tsx'
 import SignupPage from './pages/SignupPage.tsx'
 import KakaoCallback from './pages/KakaoCallback.tsx'
+import RoomsPage from './pages/RoomsPage.tsx'
+import CreateRoomPage from './pages/CreateRoomPage.tsx'
+import RoomDetailPage from './pages/RoomDetailPage.tsx'
 
 // 라우터 없는 스캐폴드라 경로별로 pathname으로 분기
 function resolvePage() {
-  switch (window.location.pathname) {
+  const path = window.location.pathname
+
+  switch (path) {
     case '/login':
       return <LoginPage />
     case '/signup':
       return <SignupPage />
     case '/oauth/callback/kakao':
       return <KakaoCallback />
-    default:
-      return <HomePage />
+    case '/rooms':
+      return <RoomsPage />
+    case '/rooms/new':
+      return <CreateRoomPage />
   }
+
+  const roomDetailMatch = path.match(/^\/rooms\/(\d+)$/)
+  if (roomDetailMatch) {
+    return <RoomDetailPage roomId={Number(roomDetailMatch[1])} />
+  }
+
+  return <HomePage />
 }
 
 createRoot(document.getElementById('root')!).render(
