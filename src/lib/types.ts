@@ -23,6 +23,24 @@ export type RoomParticipant = {
   endedAt: string | null
 }
 
+<<<<<<< Updated upstream
+export type FavoriteStock = {
+  id: number
+  stockCode: string
+  stockName: string
+}
+
+export type PriceSnapshot = {
+  stck_prpr: string
+  prdy_vrss: string
+  prdy_vrss_sign: string
+  prdy_ctrt: string
+  acml_vol: string
+  stck_oprc: string
+  stck_hgpr: string
+  stck_lwpr: string
+}
+
 export type PortfolioSummary = {
   roomParticipantId: number
   roomId: number
@@ -55,4 +73,41 @@ export type PortfolioDetail = PortfolioSummary & {
 export type PortfolioHistoryPoint = {
   recordedAt: string
   totalAssetValue: number
+=======
+export type Post = {
+  id: number
+  memberId: number
+  content: string
+  stockCode: string | null
+  transactionId: number | null
+  profitAmount: number | null
+  profitRate: number | null
+  hasCertificate: boolean
+  likeCount: number
+  commentCount: number
+  likedByMe: boolean
+  createAt: string
+  updateAt: string
+}
+
+export type CommunityComment = {
+  id: number
+  postId: number
+  memberId: number
+  content: string
+  likeCount: number
+  likedByMe: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type Page<T> = {
+  content: T[]
+  totalElements: number
+  totalPages: number
+  number: number
+  size: number
+  first: boolean
+  last: boolean
+>>>>>>> Stashed changes
 }

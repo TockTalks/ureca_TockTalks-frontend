@@ -8,8 +8,14 @@ import KakaoCallback from './pages/KakaoCallback.tsx'
 import RoomsPage from './pages/RoomsPage.tsx'
 import CreateRoomPage from './pages/CreateRoomPage.tsx'
 import RoomDetailPage from './pages/RoomDetailPage.tsx'
+<<<<<<< Updated upstream
 import PortfolioPage from './pages/PortfolioPage.tsx'
 import PortfolioDetailPage from './pages/PortfolioDetailPage.tsx'
+=======
+import CommunityPage from './pages/CommunityPage.tsx'
+import CommunityWritePage from './pages/CommunityWritePage.tsx'
+import CommunityDetailPage from './pages/CommunityDetailPage.tsx'
+>>>>>>> Stashed changes
 
 // 라우터 없는 스캐폴드라 경로별로 pathname으로 분기
 function resolvePage() {
@@ -26,8 +32,15 @@ function resolvePage() {
       return <RoomsPage />
     case '/rooms/new':
       return <CreateRoomPage />
+<<<<<<< Updated upstream
     case '/portfolio':
       return <PortfolioPage />
+=======
+    case '/community':
+      return <CommunityPage />
+    case '/community/new':
+      return <CommunityWritePage />
+>>>>>>> Stashed changes
   }
 
   const roomDetailMatch = path.match(/^\/rooms\/(\d+)$/)
@@ -35,9 +48,15 @@ function resolvePage() {
     return <RoomDetailPage roomId={Number(roomDetailMatch[1])} />
   }
 
+<<<<<<< Updated upstream
   const portfolioDetailMatch = path.match(/^\/portfolio\/(\d+)$/)
   if (portfolioDetailMatch) {
     return <PortfolioDetailPage roomParticipantId={Number(portfolioDetailMatch[1])} />
+=======
+  const communityDetailMatch = path.match(/^\/community\/(\d+)$/)
+  if (communityDetailMatch) {
+    return <CommunityDetailPage postId={Number(communityDetailMatch[1])} />
+>>>>>>> Stashed changes
   }
 
   return <HomePage />
