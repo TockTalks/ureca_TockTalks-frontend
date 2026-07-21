@@ -68,6 +68,47 @@
   padding: 24px 0;
 }
 
+.price-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.price-stock-name {
+  font-size: 15px;
+  color: var(--color-text-secondary);
+}
+
+.price-current {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.price-change {
+  font-size: 14px;
+}
+
+.price-up {
+  color: #d92b2b;
+}
+
+.price-down {
+  color: #1a63d6;
+}
+
+.chart-container {
+  height: 420px;
+}
+
+@media (max-width: 576px) {
+  .chart-container {
+    height: 280px;
+  }
+}
+
 @media (max-width: 992px) {
   .home-grid {
     grid-template-columns: 1fr;
