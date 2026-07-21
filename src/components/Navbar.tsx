@@ -7,22 +7,29 @@ type NavbarProps = {
   onLogout: () => void
 }
 
+const navigationItems = [
+  { href: '/stocks', label: '종목' },
+  { href: '/portfolio', label: '포트폴리오' },
+  { href: '/community', label: '커뮤니티' },
+  { href: '/rooms', label: '방 목록' },
+]
+
 function Navbar({ me, authChecked, onLogout }: NavbarProps) {
   return (
     <header className="navbar">
-      <div className="navbar-left">
-        <a href="/" className="navbar-brand">
-          톡톡스
-        </a>
-        <a href="/rooms" className="navbar-link">
-          방 목록
-        </a>
-        <a href="/portfolio" className="navbar-link">
-          포트폴리오
-        </a>
-      </div>
+      <a href="/" className="navbar-brand">
+        톡톡스
+      </a>
 
-      <nav className="navbar-actions">
+      <nav className="navbar-menu" aria-label="주요 메뉴">
+        {navigationItems.map((item) => (
+          <a key={item.href} href={item.href} className="navbar-link">
+            {item.label}
+          </a>
+        ))}
+      </nav>
+
+      <div className="navbar-actions">
         {!authChecked && <div className="navbar-skeleton" aria-hidden="true" />}
 
         {authChecked && me && (
@@ -44,7 +51,7 @@ function Navbar({ me, authChecked, onLogout }: NavbarProps) {
             </a>
           </>
         )}
-      </nav>
+      </div>
     </header>
   )
 }

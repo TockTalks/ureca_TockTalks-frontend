@@ -29,6 +29,11 @@ export type FavoriteStock = {
   stockName: string
 }
 
+export type StockInfo = {
+  stockCode: string
+  stockName: string
+}
+
 export type PriceSnapshot = {
   stck_prpr: string
   prdy_vrss: string
@@ -72,4 +77,35 @@ export type PortfolioDetail = PortfolioSummary & {
 export type PortfolioHistoryPoint = {
   recordedAt: string
   totalAssetValue: number
+}
+
+export type TradeType = 'BUY' | 'SELL'
+
+export type TradeExecution = {
+  transactionId: number
+  roomParticipantId: number
+  stockCode: string
+  stockName: string
+  type: TradeType
+  quantity: number
+  price: number
+  tradeAmount: number
+  balance: number
+  profitAmount: number | null
+  profitRate: number | null
+  executedAt: string
+}
+
+export type TradeHolding = {
+  holdingId: number
+  roomParticipantId: number
+  stockCode: string
+  stockName: string
+  quantity: number
+  avgPrice: number
+  currentPrice: number
+  valuationAmount: number
+  profitLoss: number
+  profitRate: number
+  updatedAt: string
 }
