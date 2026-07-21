@@ -1,14 +1,35 @@
 import { useEffect, useState } from 'react'
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import Navbar from '../components/Navbar'
 import { api } from '../lib/apiClient'
-import { usePriceStream } from '../lib/priceSocket'
+import { usePriceStream, type PricePoint } from '../lib/priceSocket'
 import { useAuth } from '../lib/useAuth'
 import type { FavoriteStock } from '../lib/types'
 import './HomePage.css'
 
 const DEFAULT_STOCK_CODE = '005930'
 const DEFAULT_STOCK_NAME = '삼성전자'
+
+const UP_COLOR = '#ff4d4f'
+const DOWN_COLOR = '#1677ff'
+const NEUTRAL_COLOR = '#00000073'
+
+type PriceTooltipProps = {
+  active?: boolean
+  payload?: Array<{ payload: PricePoint }>
+}
+
+function PriceTooltip({ active, payload }: PriceTooltipProps) {
+  if (!active || !payload || payload.length === 0) return null
+  const point = payload[0].payload
+
+  return (
+    <div className="price-tooltip">
+      <span className="price-tooltip-time">{point.time}</span>
+      <span className="price-tooltip-value">{point.price.toLocaleString('ko-KR')}원</span>
+    </div>
+  )
+}
 
 function HomePage() {
   const { me, authChecked, logout } = useAuth()
@@ -34,6 +55,7 @@ function HomePage() {
   const changeRate = snapshot ? Number(snapshot.prdy_ctrt) : null
   const isUp = snapshot?.prdy_vrss_sign === '1' || snapshot?.prdy_vrss_sign === '2'
   const isDown = snapshot?.prdy_vrss_sign === '4' || snapshot?.prdy_vrss_sign === '5'
+  const trendColor = isUp ? UP_COLOR : isDown ? DOWN_COLOR : NEUTRAL_COLOR
 
   return (
     <>
@@ -49,11 +71,13 @@ function HomePage() {
               {latestPrice !== null && (
                 <>
                   <span className="price-current">{latestPrice.toLocaleString('ko-KR')}원</span>
-                  {changeAmount !== null && changeRate !== null && (
-                    <span className={`price-change ${isUp ? 'price-up' : isDown ? 'price-down' : ''}`}>
-                      {isUp ? '▲' : isDown ? '▼' : ''} {Math.abs(changeAmount).toLocaleString('ko-KR')} (
-                      {changeRate > 0 ? '+' : ''}
-                      {changeRate}%)
+                  {changeAmount !== null && changeRate !== null && (isUp || isDown) && (
+                    <span className={`price-change-badge ${isUp ? 'price-up' : 'price-down'}`}>
+                      {isUp ? '▲' : '▼'} {Math.abs(changeAmount).toLocaleString('ko-KR')}
+                      <span className="price-change-rate">
+                        ({changeRate > 0 ? '+' : ''}
+                        {changeRate}%)
+                      </span>
                     </span>
                   )}
                 </>
@@ -63,19 +87,31 @@ function HomePage() {
             {points.length > 0 ? (
               <div className="chart-container">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={points}>
+                  <AreaChart data={points} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="priceFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={trendColor} stopOpacity={0.22} />
+                        <stop offset="100%" stopColor={trendColor} stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
                     <XAxis dataKey="time" hide />
                     <YAxis domain={['auto', 'auto']} hide />
-                    <Tooltip formatter={(value) => [`${Number(value).toLocaleString('ko-KR')}원`, '가격']} />
-                    <Line
-                      type="monotone"
+                    <Tooltip
+                      content={(props) => (
+                        <PriceTooltip active={props.active} payload={props.payload as unknown as PriceTooltipProps['payload']} />
+                      )}
+                    />
+                    <Area
+                      type="natural"
                       dataKey="price"
-                      stroke="#d92b2b"
-                      dot={false}
+                      stroke={trendColor}
                       strokeWidth={2}
+                      fill="url(#priceFill)"
+                      dot={false}
+                      activeDot={{ r: 4, stroke: trendColor, strokeWidth: 2, fill: 'var(--color-bg-container)' }}
                       isAnimationActive={false}
                     />
-                  </LineChart>
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
             ) : (

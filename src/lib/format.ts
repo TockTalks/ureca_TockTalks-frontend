@@ -36,3 +36,20 @@ export function statusBadgeClass(status: string): string {
       return 'badge badge-default'
   }
 }
+
+export function formatPercent(rate: number): string {
+  const sign = rate > 0 ? '+' : ''
+  return `${sign}${rate.toFixed(2)}%`
+}
+
+export function profitTextClass(amount: number): string {
+  if (amount > 0) return 'text-rise'
+  if (amount < 0) return 'text-fall'
+  return ''
+}
+
+export function profitBadgeClass(amount: number): string {
+  if (amount > 0) return 'badge badge-rise'
+  if (amount < 0) return 'badge badge-fall'
+  return 'badge badge-default'
+}

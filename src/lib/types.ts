@@ -39,3 +39,37 @@ export type PriceSnapshot = {
   stck_hgpr: string
   stck_lwpr: string
 }
+
+export type PortfolioSummary = {
+  roomParticipantId: number
+  roomId: number
+  roomName: string
+  roomStatus: string
+  balance: number
+  stockValuation: number
+  totalAssetValue: number
+  initialSeedMoney: number
+  profitAmount: number
+  profitRate: number
+  holdingCount: number
+}
+
+export type PortfolioHolding = {
+  stockCode: string
+  stockName: string
+  quantity: number
+  avgPurchasePrice: number
+  currentPrice: number
+  evaluationAmount: number
+  profitAmount: number
+  profitRate: number
+}
+
+export type PortfolioDetail = PortfolioSummary & {
+  holdings: PortfolioHolding[]
+}
+
+export type PortfolioHistoryPoint = {
+  recordedAt: string
+  totalAssetValue: number
+}

@@ -77,30 +77,68 @@
 }
 
 .price-stock-name {
-  font-size: 15px;
-  color: var(--color-text-secondary);
-}
-
-.price-current {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--color-text);
 }
 
-.price-change {
-  font-size: 14px;
+.price-current {
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
 }
 
-.price-up {
-  color: #d92b2b;
+.price-change-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
-.price-down {
-  color: #1a63d6;
+.price-change-rate {
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.price-change-badge.price-up {
+  color: var(--color-error);
+  background: #fff1f0;
+}
+
+.price-change-badge.price-down {
+  color: #1677ff;
+  background: #e6f4ff;
 }
 
 .chart-container {
   height: 420px;
+}
+
+.price-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  background: var(--color-bg-container);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-tertiary);
+  font-size: 12px;
+}
+
+.price-tooltip-time {
+  color: var(--color-text-secondary);
+}
+
+.price-tooltip-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
 }
 
 @media (max-width: 576px) {
