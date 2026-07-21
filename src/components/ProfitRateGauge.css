@@ -1,0 +1,13 @@
+.profit-gauge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profit-gauge-label {
+  position: absolute;
+  font-weight: 700;
+  white-space: nowrap;
+}
