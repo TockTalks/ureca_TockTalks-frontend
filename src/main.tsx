@@ -10,6 +10,8 @@ import CreateRoomPage from './pages/CreateRoomPage.tsx'
 import RoomDetailPage from './pages/RoomDetailPage.tsx'
 import PortfolioPage from './pages/PortfolioPage.tsx'
 import PortfolioDetailPage from './pages/PortfolioDetailPage.tsx'
+import StocksPage from './pages/StocksPage.tsx'
+import StockDetailPage from './pages/StockDetailPage.tsx'
 import CommunityPage from './pages/CommunityPage.tsx'
 import CommunityWritePage from './pages/CommunityWritePage.tsx'
 import CommunityDetailPage from './pages/CommunityDetailPage.tsx'
@@ -31,6 +33,8 @@ function resolvePage() {
       return <CreateRoomPage />
     case '/portfolio':
       return <PortfolioPage />
+    case '/stocks':
+      return <StocksPage />
     case '/community':
       return <CommunityPage />
     case '/community/new':
@@ -45,6 +49,11 @@ function resolvePage() {
   const portfolioDetailMatch = path.match(/^\/portfolio\/(\d+)$/)
   if (portfolioDetailMatch) {
     return <PortfolioDetailPage roomParticipantId={Number(portfolioDetailMatch[1])} />
+  }
+
+  const stockDetailMatch = path.match(/^\/stocks\/(\d{6})$/)
+  if (stockDetailMatch) {
+    return <StockDetailPage stockCode={stockDetailMatch[1]} />
   }
 
   const communityDetailMatch = path.match(/^\/community\/(\d+)$/)
