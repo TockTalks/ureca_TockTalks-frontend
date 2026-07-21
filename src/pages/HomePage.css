@@ -68,6 +68,85 @@
   padding: 24px 0;
 }
 
+.price-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.price-stock-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.price-current {
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+.price-change-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.price-change-rate {
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.price-change-badge.price-up {
+  color: var(--color-error);
+  background: #fff1f0;
+}
+
+.price-change-badge.price-down {
+  color: #1677ff;
+  background: #e6f4ff;
+}
+
+.chart-container {
+  height: 420px;
+}
+
+.price-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  background: var(--color-bg-container);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-tertiary);
+  font-size: 12px;
+}
+
+.price-tooltip-time {
+  color: var(--color-text-secondary);
+}
+
+.price-tooltip-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+@media (max-width: 576px) {
+  .chart-container {
+    height: 280px;
+  }
+}
+
 @media (max-width: 992px) {
   .home-grid {
     grid-template-columns: 1fr;

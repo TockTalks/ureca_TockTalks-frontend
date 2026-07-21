@@ -23,6 +23,23 @@ export type RoomParticipant = {
   endedAt: string | null
 }
 
+export type FavoriteStock = {
+  id: number
+  stockCode: string
+  stockName: string
+}
+
+export type PriceSnapshot = {
+  stck_prpr: string
+  prdy_vrss: string
+  prdy_vrss_sign: string
+  prdy_ctrt: string
+  acml_vol: string
+  stck_oprc: string
+  stck_hgpr: string
+  stck_lwpr: string
+}
+
 export type PortfolioSummary = {
   roomParticipantId: number
   roomId: number
