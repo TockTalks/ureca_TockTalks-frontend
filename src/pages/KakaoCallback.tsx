@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../lib/apiClient'
-import { setTokens } from '../lib/auth'
+import { consumeKakaoLoginNext, setTokens } from '../lib/auth'
 
 type TokenResponse = {
   accessToken: string
@@ -24,7 +24,7 @@ function KakaoCallback() {
       .post<TokenResponse>('/api/auth/kakao/login', { code })
       .then((res) => {
         setTokens(res.accessToken, res.refreshToken)
-        window.location.replace('/')
+        window.location.replace(consumeKakaoLoginNext() || '/')
       })
       .catch((err) => {
         setErrorMessage(err instanceof ApiError ? err.message : '로그인에 실패했습니다.')

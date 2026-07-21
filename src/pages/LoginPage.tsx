@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { api, ApiError } from '../lib/apiClient'
-import { setTokens } from '../lib/auth'
+import { setKakaoLoginNext, setTokens } from '../lib/auth'
 import './AuthPage.css'
 
 type TokenResponse = {
@@ -18,6 +18,9 @@ function LoginPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
+  const nextPath = new URLSearchParams(window.location.search).get('next')
+  const loginRequired = nextPath !== null
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
@@ -25,7 +28,7 @@ function LoginPage() {
     try {
       const res = await api.post<TokenResponse>('/api/auth/login', { email, password })
       setTokens(res.accessToken, res.refreshToken)
-      window.location.replace('/')
+      window.location.replace(nextPath || '/')
     } catch (err) {
       setErrorMessage(err instanceof ApiError ? err.message : '로그인에 실패했습니다.')
       setSubmitting(false)
@@ -33,6 +36,9 @@ function LoginPage() {
   }
 
   const handleKakaoLogin = async () => {
+    if (nextPath) {
+      setKakaoLoginNext(nextPath)
+    }
     const { url } = await api.get<{ url: string }>('/api/auth/kakao/authorize-url')
     window.location.href = url
   }
@@ -45,6 +51,8 @@ function LoginPage() {
 
       <div className="card auth-card">
         <h1>로그인</h1>
+
+        {loginRequired && <p className="alert-error">로그인이 필요합니다.</p>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <label className="field">
