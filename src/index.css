@@ -12,6 +12,14 @@
   --color-warning: #faad14;
   --color-error: #ff4d4f;
 
+  /* Color — profit/loss (KR stock convention: rise = red, fall = blue) */
+  --color-rise: #f5222d;
+  --color-rise-bg: #fff1f0;
+  --color-rise-border: #ffa39e;
+  --color-fall: #096dd9;
+  --color-fall-bg: #e6f4ff;
+  --color-fall-border: #91caff;
+
   /* Color — text (opacity-based hierarchy) */
   --color-text: #000000e0;
   --color-text-secondary: #000000a6;
@@ -286,4 +294,24 @@ code {
   color: var(--color-primary);
   background: #e6f4ff;
   border-color: #91caff;
+}
+
+.badge-rise {
+  color: var(--color-rise);
+  background: var(--color-rise-bg);
+  border-color: var(--color-rise-border);
+}
+
+.badge-fall {
+  color: var(--color-fall);
+  background: var(--color-fall-bg);
+  border-color: var(--color-fall-border);
+}
+
+.text-rise {
+  color: var(--color-rise);
+}
+
+.text-fall {
+  color: var(--color-fall);
 }

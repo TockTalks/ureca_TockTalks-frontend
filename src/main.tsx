@@ -8,6 +8,8 @@ import KakaoCallback from './pages/KakaoCallback.tsx'
 import RoomsPage from './pages/RoomsPage.tsx'
 import CreateRoomPage from './pages/CreateRoomPage.tsx'
 import RoomDetailPage from './pages/RoomDetailPage.tsx'
+import PortfolioPage from './pages/PortfolioPage.tsx'
+import PortfolioDetailPage from './pages/PortfolioDetailPage.tsx'
 
 // 라우터 없는 스캐폴드라 경로별로 pathname으로 분기
 function resolvePage() {
@@ -24,11 +26,18 @@ function resolvePage() {
       return <RoomsPage />
     case '/rooms/new':
       return <CreateRoomPage />
+    case '/portfolio':
+      return <PortfolioPage />
   }
 
   const roomDetailMatch = path.match(/^\/rooms\/(\d+)$/)
   if (roomDetailMatch) {
     return <RoomDetailPage roomId={Number(roomDetailMatch[1])} />
+  }
+
+  const portfolioDetailMatch = path.match(/^\/portfolio\/(\d+)$/)
+  if (portfolioDetailMatch) {
+    return <PortfolioDetailPage roomParticipantId={Number(portfolioDetailMatch[1])} />
   }
 
   return <HomePage />
