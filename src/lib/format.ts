@@ -37,7 +37,6 @@ export function statusBadgeClass(status: string): string {
   }
 }
 
-<<<<<<< Updated upstream
 export function formatPercent(rate: number): string {
   const sign = rate > 0 ? '+' : ''
   return `${sign}${rate.toFixed(2)}%`
@@ -53,7 +52,8 @@ export function profitBadgeClass(amount: number): string {
   if (amount > 0) return 'badge badge-rise'
   if (amount < 0) return 'badge badge-fall'
   return 'badge badge-default'
-=======
+}
+
 export function formatShortDate(iso: string): string {
   return new Date(iso).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
 }
@@ -66,5 +66,4 @@ export function splitPostTitle(content: string): { title: string; body: string }
     return { title: trimmed, body: '' }
   }
   return { title: trimmed.slice(0, newlineIndex).trim(), body: trimmed.slice(newlineIndex + 1).trim() }
->>>>>>> Stashed changes
 }
