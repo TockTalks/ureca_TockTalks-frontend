@@ -12,6 +12,9 @@ import PortfolioPage from './pages/PortfolioPage.tsx'
 import PortfolioDetailPage from './pages/PortfolioDetailPage.tsx'
 import StocksPage from './pages/StocksPage.tsx'
 import StockDetailPage from './pages/StockDetailPage.tsx'
+import CommunityPage from './pages/CommunityPage.tsx'
+import CommunityWritePage from './pages/CommunityWritePage.tsx'
+import CommunityDetailPage from './pages/CommunityDetailPage.tsx'
 
 // 라우터 없는 스캐폴드라 경로별로 pathname으로 분기
 function resolvePage() {
@@ -32,6 +35,10 @@ function resolvePage() {
       return <PortfolioPage />
     case '/stocks':
       return <StocksPage />
+    case '/community':
+      return <CommunityPage />
+    case '/community/new':
+      return <CommunityWritePage />
   }
 
   const roomDetailMatch = path.match(/^\/rooms\/(\d+)$/)
@@ -47,6 +54,11 @@ function resolvePage() {
   const stockDetailMatch = path.match(/^\/stocks\/(\d{6})$/)
   if (stockDetailMatch) {
     return <StockDetailPage stockCode={stockDetailMatch[1]} />
+  }
+
+  const communityDetailMatch = path.match(/^\/community\/(\d+)$/)
+  if (communityDetailMatch) {
+    return <CommunityDetailPage postId={Number(communityDetailMatch[1])} />
   }
 
   return <HomePage />

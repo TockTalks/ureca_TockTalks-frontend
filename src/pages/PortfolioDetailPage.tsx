@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Navbar from '../components/Navbar'
+import ProfitRateGauge from '../components/ProfitRateGauge' // ===== 추가: 수익률 원형 게이지 =====
 import { api, ApiError } from '../lib/apiClient'
 import { useAuth } from '../lib/useAuth'
 import type { PortfolioDetail, PortfolioHistoryPoint } from '../lib/types'
@@ -49,6 +50,12 @@ function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number 
                 <h1>{detail.roomName}</h1>
                 <span className={statusBadgeClass(detail.roomStatus)}>{statusLabel(detail.roomStatus)}</span>
               </div>
+
+              {/* ===== 추가: 수익률 게이지 ===== */}
+              <div className="portfolio-detail-gauge-wrap">
+                <ProfitRateGauge rate={detail.profitRate} size={120} />
+              </div>
+              {/* ===== 추가 끝 ===== */}
 
               <div className="room-detail-meta">
                 <div className="room-detail-meta-item">
