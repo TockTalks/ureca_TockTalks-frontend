@@ -1,9 +1,18 @@
 .portfolio-summary-bar {
   display: flex;
+  align-items: center;
   gap: 32px;
   margin-bottom: 24px;
   flex-wrap: wrap;
 }
+
+/* ===== 추가: 포트폴리오 상세 페이지 수익률 게이지 래퍼 ===== */
+.portfolio-detail-gauge-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+/* ===== 추가 끝 ===== */
 
 .portfolio-summary-item .label {
   font-size: 12px;

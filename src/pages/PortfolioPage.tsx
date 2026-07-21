@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Navbar from '../components/Navbar'
+import ProfitRateGauge from '../components/ProfitRateGauge' // ===== 추가: 수익률 원형 게이지 =====
 import { api, ApiError } from '../lib/apiClient'
 import { useAuth } from '../lib/useAuth'
 import type { PortfolioSummary } from '../lib/types'
@@ -43,6 +44,9 @@ function PortfolioPage() {
 
         {loaded && portfolios.length > 0 && (
           <div className="card portfolio-summary-bar">
+            {/* ===== 추가: 전체 수익률 게이지 ===== */}
+            <ProfitRateGauge rate={totalProfitRate} size={96} />
+            {/* ===== 추가 끝 ===== */}
             <div className="portfolio-summary-item">
               <div className="label">총 평가자산</div>
               <div className="value">{formatMoney(totalAssetValue)}</div>
@@ -79,6 +83,9 @@ function PortfolioPage() {
                   <span>보유 종목 {p.holdingCount}개</span>
                 </div>
                 <div className="portfolio-card-profit">
+                  {/* ===== 추가: 방별 수익률 게이지 ===== */}
+                  <ProfitRateGauge rate={p.profitRate} size={48} />
+                  {/* ===== 추가 끝 ===== */}
                   <span className={profitBadgeClass(p.profitAmount)}>{formatPercent(p.profitRate)}</span>
                   <span className={`profit-amount ${p.profitAmount > 0 ? 'text-rise' : p.profitAmount < 0 ? 'text-fall' : ''}`}>
                     {formatMoney(p.profitAmount)}
