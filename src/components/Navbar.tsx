@@ -17,13 +17,11 @@ function Navbar({ me, authChecked, onLogout }: NavbarProps) {
         <a href="/rooms" className="navbar-link">
           방 목록
         </a>
-<<<<<<< Updated upstream
         <a href="/portfolio" className="navbar-link">
           포트폴리오
-=======
+        </a>
         <a href="/community" className="navbar-link">
           커뮤니티
->>>>>>> Stashed changes
         </a>
       </div>
 

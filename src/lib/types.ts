@@ -23,7 +23,6 @@ export type RoomParticipant = {
   endedAt: string | null
 }
 
-<<<<<<< Updated upstream
 export type FavoriteStock = {
   id: number
   stockCode: string
@@ -73,7 +72,8 @@ export type PortfolioDetail = PortfolioSummary & {
 export type PortfolioHistoryPoint = {
   recordedAt: string
   totalAssetValue: number
-=======
+}
+
 export type Post = {
   id: number
   memberId: number
@@ -109,5 +109,4 @@ export type Page<T> = {
   size: number
   first: boolean
   last: boolean
->>>>>>> Stashed changes
 }
