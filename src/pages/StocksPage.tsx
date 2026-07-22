@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Navbar from '../components/Navbar'
 import { api, ApiError } from '../lib/apiClient'
 import type { PriceSnapshot, StockInfo } from '../lib/types'
@@ -6,6 +6,16 @@ import { useAuth } from '../lib/useAuth'
 import './StocksPage.css'
 
 const PAGE_SIZE = 20
+const PRICE_BATCH_SIZE = 4
+const PRICE_BATCH_DELAY_MS = 250
+
+type PriceLoadProgress = {
+  completed: number
+  total: number
+}
+
+const wait = (milliseconds: number) =>
+  new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds))
 
 function StocksPage() {
   const { me, authChecked, logout } = useAuth()
@@ -15,11 +25,20 @@ function StocksPage() {
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [prices, setPrices] = useState<Record<string, number | null>>({})
+  const [priceSortDirection, setPriceSortDirection] = useState<'desc' | 'asc' | null>(null)
+  const [isLoadingAllPrices, setIsLoadingAllPrices] = useState(false)
+  const [priceLoadProgress, setPriceLoadProgress] = useState<PriceLoadProgress>({
+    completed: 0,
+    total: 0,
+  })
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const requestedPriceCodesRef = useRef(new Set<string>())
+  const allPricesLoadedRef = useRef(false)
   const mountedRef = useRef(true)
 
   useEffect(() => {
+    mountedRef.current = true
+
     return () => {
       mountedRef.current = false
     }
@@ -53,24 +72,58 @@ function StocksPage() {
     setVisibleCount(PAGE_SIZE)
   }, [query])
 
+  const sortedStocks = useMemo(() => {
+    if (priceSortDirection === null) {
+      return filteredStocks
+    }
+
+    return [...filteredStocks].sort((firstStock, secondStock) => {
+      const firstPrice = prices[firstStock.stockCode]
+      const secondPrice = prices[secondStock.stockCode]
+
+      if (typeof firstPrice !== 'number' && typeof secondPrice !== 'number') {
+        return firstStock.stockName.localeCompare(secondStock.stockName, 'ko-KR')
+      }
+
+      if (typeof firstPrice !== 'number') {
+        return 1
+      }
+
+      if (typeof secondPrice !== 'number') {
+        return -1
+      }
+
+      if (firstPrice === secondPrice) {
+        return firstStock.stockName.localeCompare(secondStock.stockName, 'ko-KR')
+      }
+
+      return priceSortDirection === 'desc'
+        ? secondPrice - firstPrice
+        : firstPrice - secondPrice
+    })
+  }, [filteredStocks, prices, priceSortDirection])
+
   const visibleStocks = useMemo(
-    () => filteredStocks.slice(0, visibleCount),
-    [filteredStocks, visibleCount],
+    () => sortedStocks.slice(0, visibleCount),
+    [sortedStocks, visibleCount],
   )
-  const hasMore = visibleCount < filteredStocks.length
+  const hasMore = visibleCount < sortedStocks.length
 
-  useEffect(() => {
-    const pendingStocks = visibleStocks.filter(
-      (stock) => !requestedPriceCodesRef.current.has(stock.stockCode),
-    )
+  const loadPrices = useCallback(
+    async (
+      targetStocks: StockInfo[],
+      onProgress?: (progress: PriceLoadProgress) => void,
+    ) => {
+      const pendingStocks = targetStocks.filter(
+        (stock) => !requestedPriceCodesRef.current.has(stock.stockCode),
+      )
+      let completed = targetStocks.length - pendingStocks.length
 
-    pendingStocks.forEach((stock) => requestedPriceCodesRef.current.add(stock.stockCode))
+      pendingStocks.forEach((stock) => requestedPriceCodesRef.current.add(stock.stockCode))
+      onProgress?.({ completed, total: targetStocks.length })
 
-    const loadPrices = async () => {
-      const batchSize = 4
-
-      for (let index = 0; index < pendingStocks.length; index += batchSize) {
-        const batch = pendingStocks.slice(index, index + batchSize)
+      for (let index = 0; index < pendingStocks.length; index += PRICE_BATCH_SIZE) {
+        const batch = pendingStocks.slice(index, index + PRICE_BATCH_SIZE)
 
         await Promise.all(
           batch.map(async (stock) => {
@@ -91,11 +144,52 @@ function StocksPage() {
             }
           }),
         )
+
+        completed += batch.length
+        onProgress?.({ completed, total: targetStocks.length })
+
+        if (index + PRICE_BATCH_SIZE < pendingStocks.length) {
+          await wait(PRICE_BATCH_DELAY_MS)
+        }
       }
+    },
+    [],
+  )
+
+  const togglePriceSort = async () => {
+    if (isLoadingAllPrices) return
+
+    if (!allPricesLoadedRef.current) {
+      setIsLoadingAllPrices(true)
+      setPriceLoadProgress({ completed: 0, total: stocks.length })
+
+      try {
+        await loadPrices(stocks, (progress) => {
+          if (mountedRef.current) {
+            setPriceLoadProgress(progress)
+          }
+        })
+
+        allPricesLoadedRef.current = true
+
+        if (mountedRef.current) {
+          setPriceSortDirection('desc')
+        }
+      } finally {
+        if (mountedRef.current) {
+          setIsLoadingAllPrices(false)
+        }
+      }
+
+      return
     }
 
-    void loadPrices()
-  }, [visibleStocks])
+    setPriceSortDirection((current) => (current === 'desc' ? 'asc' : 'desc'))
+  }
+
+  useEffect(() => {
+    void loadPrices(visibleStocks)
+  }, [visibleStocks, loadPrices])
 
   useEffect(() => {
     const target = loadMoreRef.current
@@ -166,9 +260,37 @@ function StocksPage() {
 
         {!loading && !errorMessage && visibleStocks.length > 0 && (
           <section className="card stocks-list-card" aria-label="종목 목록">
-            <div className="stocks-list-header" aria-hidden="true">
+            <div className="stocks-list-header">
               <span>종목명</span>
-              <span>현재가</span>
+              <button
+                type="button"
+                className="stock-price-sort-button"
+                onClick={() => void togglePriceSort()}
+                disabled={isLoadingAllPrices}
+                aria-label={
+                  isLoadingAllPrices
+                    ? `전체 종목 시세 불러오는 중 ${priceLoadProgress.completed}/${priceLoadProgress.total}`
+                    : priceSortDirection === 'desc'
+                    ? '현재가 낮은 순으로 정렬'
+                    : '현재가 높은 순으로 정렬'
+                }
+              >
+                <span>
+                  {isLoadingAllPrices
+                    ? `${priceLoadProgress.completed}/${priceLoadProgress.total}`
+                    : '현재가'}
+                </span>
+                <span className="stock-price-sort-icon" aria-hidden="true">
+                  {isLoadingAllPrices
+                    ? '…'
+                    : priceSortDirection === 'desc'
+                    ? '↓'
+                    : priceSortDirection === 'asc'
+                      ? '↑'
+                      : '↕'}
+                </span>
+              </button>
+              <span aria-hidden="true" />
             </div>
 
             <ul className="stocks-list">

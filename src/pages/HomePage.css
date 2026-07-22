@@ -204,7 +204,7 @@
   gap: 12px;
 }
 
-.investment-preview-item {
+.investment-total {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -213,14 +213,118 @@
   border-radius: var(--radius-control);
 }
 
-.investment-preview-item span {
+.investment-total > span {
   color: var(--color-text-secondary);
   font-size: 12px;
 }
 
-.investment-preview-item strong {
+.investment-total > strong {
   color: var(--color-text);
-  font-size: 14px;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.investment-total > small {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.investment-profit-rise {
+  color: var(--color-error);
+}
+
+.investment-profit-fall {
+  color: #1677ff;
+}
+
+.investment-holdings-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.investment-holdings-heading > span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.investment-holdings {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.investment-holdings li:not(:last-child) {
+  border-bottom: 1px solid var(--color-split);
+}
+
+.investment-holdings a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 4px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+
+.investment-holdings a:hover {
+  background: var(--color-fill-hover);
+}
+
+.investment-holding-name,
+.investment-holding-value {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.investment-holding-name {
+  flex: 1;
+}
+
+.investment-holding-name strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.investment-holding-name small,
+.investment-holding-value small {
+  font-size: 11px;
+}
+
+.investment-holding-name small {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.investment-holding-value {
+  align-items: flex-end;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.investment-holding-value strong {
+  color: var(--color-text);
+  font-size: 12px;
+}
+
+.investment-empty {
+  padding: 14px 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  text-align: center;
 }
 
 .investment-message {
