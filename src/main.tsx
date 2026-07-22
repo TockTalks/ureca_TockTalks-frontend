@@ -15,6 +15,7 @@ import StockDetailPage from './pages/StockDetailPage.tsx'
 import CommunityPage from './pages/CommunityPage.tsx'
 import CommunityWritePage from './pages/CommunityWritePage.tsx'
 import CommunityDetailPage from './pages/CommunityDetailPage.tsx'
+import ProfilePage from './pages/ProfilePage.tsx'
 
 // 라우터 없는 스캐폴드라 경로별로 pathname으로 분기
 function resolvePage() {
@@ -39,6 +40,8 @@ function resolvePage() {
       return <CommunityPage />
     case '/community/new':
       return <CommunityWritePage />
+    case '/profile':
+      return <ProfilePage />
   }
 
   const roomDetailMatch = path.match(/^\/rooms\/(\d+)$/)
