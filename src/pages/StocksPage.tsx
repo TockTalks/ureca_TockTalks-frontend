@@ -5,7 +5,7 @@ import type { FavoriteStock, PriceSnapshot, StockInfo } from '../lib/types'
 import { useAuth } from '../lib/useAuth'
 import './StocksPage.css'
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 12
 const PRICE_BATCH_SIZE = 4
 const PRICE_BATCH_DELAY_MS = 250
 
@@ -26,7 +26,7 @@ function StocksPage() {
   const { me, authChecked, logout } = useAuth()
   const [stocks, setStocks] = useState<StockInfo[]>([])
   const [query, setQuery] = useState('')
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [quotes, setQuotes] = useState<Record<string, StockQuote | null>>({})
@@ -38,7 +38,6 @@ function StocksPage() {
     completed: 0,
     total: 0,
   })
-  const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const [favoriteStocks, setFavoriteStocks] = useState<FavoriteStock[] | null>(null)
   const [favoritePrices, setFavoritePrices] = useState<Record<string, number | null>>({})
   const [favoriteSubmittingCode, setFavoriteSubmittingCode] = useState<string | null>(null)
@@ -167,10 +166,6 @@ function StocksPage() {
     )
   }, [query, stocks])
 
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE)
-  }, [query])
-
   const sortedStocks = useMemo(() => {
     if (changeRateSortDirection === null) {
       return filteredStocks
@@ -202,11 +197,20 @@ function StocksPage() {
     })
   }, [changeRateSortDirection, filteredStocks, quotes])
 
-  const visibleStocks = useMemo(
-    () => sortedStocks.slice(0, visibleCount),
-    [sortedStocks, visibleCount],
-  )
-  const hasMore = visibleCount < sortedStocks.length
+  const totalPages = Math.max(1, Math.ceil(sortedStocks.length / PAGE_SIZE))
+
+  useEffect(() => {
+    setPage(1)
+  }, [query])
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages))
+  }, [totalPages])
+
+  const pagedStocks = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE
+    return sortedStocks.slice(start, start + PAGE_SIZE)
+  }, [page, sortedStocks])
 
   const loadQuotes = useCallback(
     async (
@@ -277,6 +281,7 @@ function StocksPage() {
 
         if (mountedRef.current) {
           setChangeRateSortDirection('desc')
+          setPage(1)
         }
       } finally {
         if (mountedRef.current) {
@@ -288,31 +293,12 @@ function StocksPage() {
     }
 
     setChangeRateSortDirection((current) => (current === 'desc' ? 'asc' : 'desc'))
+    setPage(1)
   }
 
   useEffect(() => {
-    void loadQuotes(visibleStocks)
-  }, [visibleStocks, loadQuotes])
-
-  useEffect(() => {
-    const target = loadMoreRef.current
-    if (!target || !hasMore) return
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) return
-
-        setVisibleCount((current) =>
-          Math.min(current + PAGE_SIZE, filteredStocks.length),
-        )
-      },
-      { rootMargin: '160px 0px' },
-    )
-
-    observer.observe(target)
-
-    return () => observer.disconnect()
-  }, [filteredStocks.length, hasMore])
+    void loadQuotes(pagedStocks)
+  }, [pagedStocks, loadQuotes])
 
   return (
     <>
@@ -404,7 +390,7 @@ function StocksPage() {
           </div>
         )}
 
-        {!loading && !errorMessage && visibleStocks.length > 0 && (
+        {!loading && !errorMessage && pagedStocks.length > 0 && (
           <section className="card stocks-list-card" aria-label="종목 목록">
             <div className="stocks-list-header">
               <span>종목명</span>
@@ -441,7 +427,7 @@ function StocksPage() {
             </div>
 
             <ul className="stocks-list">
-              {visibleStocks.map((stock) => {
+              {pagedStocks.map((stock) => {
                 const quote = quotes[stock.stockCode]
                 const isFavorite = favoriteStockCodes.has(stock.stockCode)
 
@@ -504,11 +490,29 @@ function StocksPage() {
         )}
 
         {!loading && !errorMessage && filteredStocks.length > 0 && (
-          <div ref={loadMoreRef} className="stocks-load-more" aria-live="polite">
-            {hasMore
-              ? `아래로 스크롤하면 ${Math.min(PAGE_SIZE, filteredStocks.length - visibleCount)}개를 더 불러옵니다.`
-              : `전체 ${filteredStocks.length.toLocaleString('ko-KR')}개 종목을 모두 표시했습니다.`}
-          </div>
+          <nav className="stocks-pagination" aria-label="종목 목록 페이지">
+            <button
+              type="button"
+              className="btn btn-default"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={page <= 1}
+            >
+              이전
+            </button>
+
+            <span className="stocks-pagination-status">
+              {page} / {totalPages}
+            </span>
+
+            <button
+              type="button"
+              className="btn btn-default"
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              disabled={page >= totalPages}
+            >
+              다음
+            </button>
+          </nav>
         )}
       </main>
     </>
