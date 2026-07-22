@@ -17,6 +17,7 @@ function StocksPage() {
   const [prices, setPrices] = useState<Record<string, number | null>>({})
   const [favoriteStocks, setFavoriteStocks] = useState<FavoriteStock[] | null>(null)
   const [favoritePrices, setFavoritePrices] = useState<Record<string, number | null>>({})
+  const [favoriteSubmittingCode, setFavoriteSubmittingCode] = useState<string | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const requestedPriceCodesRef = useRef(new Set<string>())
   const mountedRef = useRef(true)
@@ -72,6 +73,29 @@ function StocksPage() {
         })
     })
   }, [favoriteStocks])
+
+  const favoriteStockCodes = useMemo(
+    () => new Set((favoriteStocks ?? []).map((stock) => stock.stockCode)),
+    [favoriteStocks],
+  )
+
+  const handleToggleFavorite = async (stock: StockInfo) => {
+    if (!me || favoriteStockCodes.has(stock.stockCode) || favoriteSubmittingCode) return
+
+    setFavoriteSubmittingCode(stock.stockCode)
+
+    try {
+      await api.post('/api/member/favorite-stocks', { stockCode: stock.stockCode })
+      setFavoriteStocks((current) => [
+        ...(current ?? []),
+        { id: -1, stockCode: stock.stockCode, stockName: stock.stockName },
+      ])
+    } catch {
+      // 실패 시 조용히 무시, 별표는 그대로 다시 눌러볼 수 있음
+    } finally {
+      setFavoriteSubmittingCode(null)
+    }
+  }
 
   const filteredStocks = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase('ko-KR')
@@ -244,9 +268,27 @@ function StocksPage() {
             <ul className="stocks-list">
               {visibleStocks.map((stock) => {
                 const currentPrice = prices[stock.stockCode]
+                const isFavorite = favoriteStockCodes.has(stock.stockCode)
 
                 return (
-                  <li key={stock.stockCode}>
+                  <li key={stock.stockCode} className="stock-list-row">
+                    {me && (
+                      <button
+                        type="button"
+                        className={`favorite-star-btn favorite-star-btn-list ${
+                          isFavorite ? 'favorite-star-active' : ''
+                        }`}
+                        onClick={() => handleToggleFavorite(stock)}
+                        disabled={isFavorite || favoriteSubmittingCode === stock.stockCode}
+                        aria-label={
+                          isFavorite ? `${stock.stockName} 관심종목에 등록됨` : `${stock.stockName} 관심종목 등록`
+                        }
+                        aria-pressed={isFavorite}
+                      >
+                        {isFavorite ? '★' : '☆'}
+                      </button>
+                    )}
+
                     <a
                       href={`/stocks/${stock.stockCode}`}
                       className="stock-list-item"
