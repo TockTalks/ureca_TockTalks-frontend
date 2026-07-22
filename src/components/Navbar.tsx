@@ -34,7 +34,9 @@ function Navbar({ me, authChecked, onLogout }: NavbarProps) {
 
         {authChecked && me && (
           <>
-            <span className="navbar-nickname">{me.nickname}님</span>
+            <a href="/profile" className="navbar-nickname">
+              {me.nickname}님
+            </a>
             <button type="button" className="btn btn-default" onClick={onLogout}>
               로그아웃
             </button>

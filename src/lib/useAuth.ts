@@ -7,6 +7,7 @@ export type Me = {
   email: string
   nickname: string
   role: string
+  provider: string
 }
 
 export function useAuth() {
