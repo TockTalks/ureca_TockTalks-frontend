@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Navbar from '../components/Navbar'
-import ProfitRateGauge from '../components/ProfitRateGauge' // ===== 추가: 수익률 원형 게이지 =====
+import PortfolioCompositionChart from '../components/PortfolioCompositionChart' // ===== 변경: 수익률 게이지 → 종목 구성 도넛 차트 =====
 import { api, ApiError } from '../lib/apiClient'
 import { useAuth } from '../lib/useAuth'
 import type { PortfolioDetail, PortfolioHistoryPoint } from '../lib/types'
@@ -51,11 +51,11 @@ function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number 
                 <span className={statusBadgeClass(detail.roomStatus)}>{statusLabel(detail.roomStatus)}</span>
               </div>
 
-              {/* ===== 추가: 수익률 게이지 ===== */}
+              {/* ===== 변경: 수익률 게이지 → 종목 구성(매입/평가) 도넛 차트, 가운데엔 여전히 수익률 표시 ===== */}
               <div className="portfolio-detail-gauge-wrap">
-                <ProfitRateGauge rate={detail.profitRate} size={120} />
+                <PortfolioCompositionChart holdings={detail.holdings} balance={detail.balance} profitRate={detail.profitRate} />
               </div>
-              {/* ===== 추가 끝 ===== */}
+              {/* ===== 변경 끝 ===== */}
 
               <div className="room-detail-meta">
                 <div className="room-detail-meta-item">

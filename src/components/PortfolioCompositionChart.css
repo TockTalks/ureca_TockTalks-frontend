@@ -1,0 +1,55 @@
+.portfolio-composition {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.portfolio-composition-chart {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.portfolio-composition-label {
+  position: absolute;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.portfolio-composition-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 220px;
+}
+
+.portfolio-composition-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.portfolio-composition-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.portfolio-composition-legend-label {
+  font-weight: 600;
+  color: var(--color-text);
+  min-width: 64px;
+}
+
+.portfolio-composition-legend-value {
+  color: var(--color-text-secondary);
+}
