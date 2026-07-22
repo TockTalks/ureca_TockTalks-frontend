@@ -315,3 +315,52 @@ code {
 .text-fall {
   color: var(--color-fall);
 }
+
+/* Ranking row — shared between the home ranking widget and the ranking page */
+.ranking-row {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.ranking-rank {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-bg-layout);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ranking-rank-1 {
+  background: #fff1b8;
+  color: #ad6800;
+}
+
+.ranking-rank-2 {
+  background: #f0f0f0;
+  color: #595959;
+}
+
+.ranking-rank-3 {
+  background: #ffe7ba;
+  color: #ad4e00;
+}
+
+.ranking-nickname {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+
+.ranking-balance {
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}

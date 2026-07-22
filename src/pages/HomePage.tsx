@@ -9,6 +9,8 @@ import type {
   PortfolioDetail,
   PortfolioHolding,
   PortfolioSummary,
+  Room,
+  RoomRanking,
 } from '../lib/types'
 import { useAuth } from '../lib/useAuth'
 import './HomePage.css'
@@ -86,6 +88,8 @@ function HomePage() {
   const [portfolioOverview, setPortfolioOverview] = useState<PortfolioOverview | null>(null)
   const [portfolioLoading, setPortfolioLoading] = useState(false)
   const [portfolioError, setPortfolioError] = useState(false)
+  const [ranking, setRanking] = useState<RoomRanking[]>([])
+  const [rankingError, setRankingError] = useState(false)
 
   useEffect(() => {
     if (!authChecked || !me) return
@@ -182,12 +186,23 @@ function HomePage() {
     }
   }, [authChecked, me])
 
+  useEffect(() => {
+    api
+      .get<Room>('/api/rooms/default')
+      .then((room) => api.get<RoomRanking[]>(`/api/rooms/${room.id}/ranking`))
+      .then((list) => setRanking(list))
+      .catch(() => setRankingError(true))
+  }, [])
+
   const { points, latestPrice, snapshot } = usePriceStream(stockCode)
 
   const changeAmount = snapshot ? Number(snapshot.prdy_vrss) : null
   const changeRate = snapshot ? Number(snapshot.prdy_ctrt) : null
   const isUp = snapshot?.prdy_vrss_sign === '1' || snapshot?.prdy_vrss_sign === '2'
   const isDown = snapshot?.prdy_vrss_sign === '4' || snapshot?.prdy_vrss_sign === '5'
+
+  const topRanking = ranking.slice(0, 10)
+  const myRanking = me ? ranking.find((entry) => entry.memberId === me.id) : undefined
 
   const handleStockChange = (stock: FeaturedStock) => {
     setStockCode(stock.stockCode)
@@ -294,105 +309,144 @@ function HomePage() {
           </div>
 
           <aside className="card investment-panel">
-            <div>
-              <span className="section-eyebrow">MY ASSET</span>
-              <h2>내 투자 현황</h2>
+            <div className="investment-top">
+              <div>
+                <span className="section-eyebrow">MY ASSET</span>
+                <h2>내 투자 현황</h2>
+              </div>
+
+              {!authChecked && <div className="investment-message">사용자 정보를 확인하고 있습니다.</div>}
+
+              {authChecked && me && (
+                <>
+                  <div className="investment-user">
+                    <strong>{me.nickname}</strong>님의 포트폴리오
+                  </div>
+
+                  {portfolioLoading && (
+                    <div className="investment-message" role="status">
+                      자산 정보를 불러오는 중입니다.
+                    </div>
+                  )}
+
+                  {!portfolioLoading && portfolioError && (
+                    <div className="investment-message">
+                      포트폴리오 정보를 불러오지 못했습니다.
+                    </div>
+                  )}
+
+                  {!portfolioLoading && !portfolioError && portfolioOverview && (
+                    <div className="investment-preview">
+                      <div className="investment-total">
+                        <span>총자산</span>
+                        <strong>{formatMoney(portfolioOverview.totalAssetValue)}</strong>
+                        <small
+                          className={
+                            portfolioOverview.totalProfitAmount > 0
+                              ? 'investment-profit-rise'
+                              : portfolioOverview.totalProfitAmount < 0
+                                ? 'investment-profit-fall'
+                                : ''
+                          }
+                        >
+                          총 수익 {formatMoney(portfolioOverview.totalProfitAmount)}
+                        </small>
+                      </div>
+
+                      <div className="investment-holdings-heading">
+                        <strong>보유 종목 TOP 3</strong>
+                        <span>{portfolioOverview.totalHoldingCount.toLocaleString('ko-KR')}개</span>
+                      </div>
+
+                      {portfolioOverview.topHoldings.length > 0 ? (
+                        <ul className="investment-holdings">
+                          {portfolioOverview.topHoldings.map((holding) => (
+                            <li key={`${holding.roomParticipantId}-${holding.stockCode}`}>
+                              <a
+                                href={`/stocks/${holding.stockCode}?roomParticipantId=${holding.roomParticipantId}`}
+                              >
+                                <span className="investment-holding-name">
+                                  <strong>{holding.stockName}</strong>
+                                  <small>{holding.roomName}</small>
+                                </span>
+                                <span className="investment-holding-value">
+                                  <strong>{formatMoney(holding.evaluationAmount)}</strong>
+                                  <small
+                                    className={
+                                      holding.profitAmount > 0
+                                        ? 'investment-profit-rise'
+                                        : holding.profitAmount < 0
+                                          ? 'investment-profit-fall'
+                                          : ''
+                                    }
+                                  >
+                                    {formatPercent(holding.profitRate)}
+                                  </small>
+                                </span>
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="investment-empty">아직 보유한 종목이 없습니다.</div>
+                      )}
+                    </div>
+                  )}
+
+                  <a href="/portfolio" className="btn btn-primary btn-block investment-button">
+                    포트폴리오 보기
+                  </a>
+                </>
+              )}
+
+              {authChecked && !me && (
+                <>
+                  <div className="investment-message">
+                    로그인하면 내 자산과 보유 종목을 확인할 수 있습니다.
+                  </div>
+                  <a href="/login" className="btn btn-primary btn-block investment-button">
+                    로그인
+                  </a>
+                </>
+              )}
             </div>
 
-            {!authChecked && <div className="investment-message">사용자 정보를 확인하고 있습니다.</div>}
+            <div className="investment-ranking">
+              <a href="/ranking" className="investment-ranking-header">
+                <span className="section-eyebrow">RANKING</span>
+                <h3>실시간 랭킹 TOP 10</h3>
+              </a>
 
-            {authChecked && me && (
-              <>
-                <div className="investment-user">
-                  <strong>{me.nickname}</strong>님의 포트폴리오
+              {ranking.length === 0 ? (
+                <div className="investment-message investment-ranking-empty">
+                  {rankingError ? '랭킹을 불러오지 못했습니다.' : '아직 순위 데이터가 없습니다.'}
                 </div>
+              ) : (
+                <>
+                  <ol className="ranking-list">
+                    {topRanking.map((entry) => (
+                      <li key={entry.memberId} className="ranking-row ranking-list-item">
+                        <span className={`ranking-rank ${entry.rank <= 3 ? `ranking-rank-${entry.rank}` : ''}`}>
+                          {entry.rank}
+                        </span>
+                        <span className="ranking-nickname">{entry.nickname}</span>
+                        <span className="ranking-balance">{formatMoney(entry.balance)}</span>
+                      </li>
+                    ))}
+                  </ol>
 
-                {portfolioLoading && (
-                  <div className="investment-message" role="status">
-                    자산 정보를 불러오는 중입니다.
-                  </div>
-                )}
-
-                {!portfolioLoading && portfolioError && (
-                  <div className="investment-message">
-                    포트폴리오 정보를 불러오지 못했습니다.
-                  </div>
-                )}
-
-                {!portfolioLoading && !portfolioError && portfolioOverview && (
-                  <div className="investment-preview">
-                    <div className="investment-total">
-                      <span>총자산</span>
-                      <strong>{formatMoney(portfolioOverview.totalAssetValue)}</strong>
-                      <small
-                        className={
-                          portfolioOverview.totalProfitAmount > 0
-                            ? 'investment-profit-rise'
-                            : portfolioOverview.totalProfitAmount < 0
-                              ? 'investment-profit-fall'
-                              : ''
-                        }
-                      >
-                        총 수익 {formatMoney(portfolioOverview.totalProfitAmount)}
-                      </small>
+                  {myRanking && (
+                    <div className="ranking-row ranking-my-rank">
+                      <span className={`ranking-rank ${myRanking.rank <= 3 ? `ranking-rank-${myRanking.rank}` : ''}`}>
+                        {myRanking.rank}
+                      </span>
+                      <span className="ranking-nickname">{myRanking.nickname}</span>
+                      <span className="ranking-balance">{formatMoney(myRanking.balance)}</span>
                     </div>
-
-                    <div className="investment-holdings-heading">
-                      <strong>보유 종목 TOP 3</strong>
-                      <span>{portfolioOverview.totalHoldingCount.toLocaleString('ko-KR')}개</span>
-                    </div>
-
-                    {portfolioOverview.topHoldings.length > 0 ? (
-                      <ul className="investment-holdings">
-                        {portfolioOverview.topHoldings.map((holding) => (
-                          <li key={`${holding.roomParticipantId}-${holding.stockCode}`}>
-                            <a
-                              href={`/stocks/${holding.stockCode}?roomParticipantId=${holding.roomParticipantId}`}
-                            >
-                              <span className="investment-holding-name">
-                                <strong>{holding.stockName}</strong>
-                                <small>{holding.roomName}</small>
-                              </span>
-                              <span className="investment-holding-value">
-                                <strong>{formatMoney(holding.evaluationAmount)}</strong>
-                                <small
-                                  className={
-                                    holding.profitAmount > 0
-                                      ? 'investment-profit-rise'
-                                      : holding.profitAmount < 0
-                                        ? 'investment-profit-fall'
-                                        : ''
-                                  }
-                                >
-                                  {formatPercent(holding.profitRate)}
-                                </small>
-                              </span>
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <div className="investment-empty">아직 보유한 종목이 없습니다.</div>
-                    )}
-                  </div>
-                )}
-
-                <a href="/portfolio" className="btn btn-primary btn-block investment-button">
-                  포트폴리오 보기
-                </a>
-              </>
-            )}
-
-            {authChecked && !me && (
-              <>
-                <div className="investment-message">
-                  로그인하면 내 자산과 보유 종목을 확인할 수 있습니다.
-                </div>
-                <a href="/login" className="btn btn-primary btn-block investment-button">
-                  로그인
-                </a>
-              </>
-            )}
+                  )}
+                </>
+              )}
+            </div>
           </aside>
         </section>
 

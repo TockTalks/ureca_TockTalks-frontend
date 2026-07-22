@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { Client } from '@stomp/stompjs'
 import { api } from './apiClient'
-import type { PriceSnapshot } from './types'
+import type { DailyPrice, PriceSnapshot } from './types'
 
 export type PricePoint = {
   time: string
   price: number
 }
 
-const MAX_POINTS = 60
+const MAX_POINTS = 90
 const POINT_INTERVAL_MS = 1500
+const HISTORY_DAYS = 30
 const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:8080/ws'
 
 export function usePriceStream(stockCode: string) {
@@ -25,29 +26,41 @@ export function usePriceStream(stockCode: string) {
     setLatestPrice(null)
     setSnapshot(null)
 
-    const appendPoint = (price: number) => {
+    const appendPoint = (price: number, label?: string) => {
       const now = Date.now()
-      if (now - lastPointAtRef.current < POINT_INTERVAL_MS) return
+      if (!label && now - lastPointAtRef.current < POINT_INTERVAL_MS) return
       lastPointAtRef.current = now
 
       setPoints((prev) => {
-        const next = [...prev, { time: new Date(now).toLocaleTimeString('ko-KR'), price }]
+        const next = [...prev, { time: label ?? new Date(now).toLocaleTimeString('ko-KR'), price }]
         return next.length > MAX_POINTS ? next.slice(next.length - MAX_POINTS) : next
       })
     }
 
-    api
-      .get<PriceSnapshot>(`/api/price/${stockCode}`)
-      .then((data) => {
+    const loadInitialData = async () => {
+      try {
+        const history = await api.get<DailyPrice[]>(`/api/price/${stockCode}/history?days=${HISTORY_DAYS}`)
+        if (cancelled) return
+        if (history.length > 0) {
+          setPoints(history.map((day) => ({ time: day.date, price: day.closePrice })))
+        }
+      } catch {
+        // 과거 시세 조회 실패 시 실시간 데이터만으로 그래프를 그립니다.
+      }
+
+      try {
+        const data = await api.get<PriceSnapshot>(`/api/price/${stockCode}`)
         if (cancelled) return
         setSnapshot(data)
         const price = Number(data.stck_prpr)
         setLatestPrice(price)
-        lastPointAtRef.current = Date.now()
-        setPoints([{ time: new Date().toLocaleTimeString('ko-KR'), price }])
-      })
-      .catch(() => {})
+        appendPoint(price, '현재가')
+      } catch {
+        // 현재가 조회 실패는 무시하고 실시간 스트림에 맡깁니다.
+      }
+    }
 
+    loadInitialData()
     api.get(`/api/price/subscribe/${stockCode}`).catch(() => {})
 
     const client = new Client({
