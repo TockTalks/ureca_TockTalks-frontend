@@ -6,8 +6,8 @@ import { useAuth } from '../lib/useAuth'
 import './StocksPage.css'
 
 const PAGE_SIZE = 12
-const PRICE_BATCH_SIZE = 4
-const PRICE_BATCH_DELAY_MS = 250
+const PRICE_BATCH_SIZE = 1
+const PRICE_BATCH_DELAY_MS = 1000
 
 type QuoteLoadProgress = {
   completed: number
