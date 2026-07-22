@@ -21,15 +21,45 @@ function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number 
 
   useEffect(() => {
     if (!me) return
+
+    let cancelled = false
+
+    setDetail(null)
+    setHistory([])
+    setErrorMessage(null)
+
     api
       .get<PortfolioDetail>(`/api/portfolios/${roomParticipantId}`)
-      .then(setDetail)
-      .catch((err) => setErrorMessage(err instanceof ApiError ? err.message : '포트폴리오를 불러오지 못했습니다.'))
+      .then((data) => {
+        if (cancelled) return
+
+        setDetail(data)
+        setErrorMessage(null)
+      })
+      .catch((err) => {
+        if (cancelled) return
+
+        setErrorMessage(
+          err instanceof ApiError ? err.message : '포트폴리오를 불러오지 못했습니다.',
+        )
+      })
 
     api
       .get<PortfolioHistoryPoint[]>(`/api/portfolios/${roomParticipantId}/history`)
-      .then(setHistory)
-      .catch(() => setHistory([]))
+      .then((data) => {
+        if (!cancelled) {
+          setHistory(data)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setHistory([])
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [me, roomParticipantId])
 
   return (
