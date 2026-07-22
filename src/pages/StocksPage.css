@@ -145,13 +145,17 @@
 
 .stocks-list-header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 140px 24px;
+  grid-template-columns: minmax(0, 1fr) 140px 100px 24px;
   gap: 16px;
   padding: 12px 20px;
   color: var(--color-text-secondary);
   font-size: 12px;
   background: var(--color-bg-layout);
   border-bottom: 1px solid var(--color-border);
+}
+
+.stocks-list-price-heading {
+  text-align: right;
 }
 
 .stock-price-sort-button {
@@ -248,7 +252,7 @@
   flex: 1;
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 140px 24px;
+  grid-template-columns: minmax(0, 1fr) 140px 100px 24px;
   align-items: center;
   gap: 16px;
   min-height: 58px;
@@ -281,6 +285,14 @@
   color: var(--color-text-secondary);
   font-size: 13px;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.stock-list-change-rate {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -342,7 +354,7 @@
   }
 
   .stock-list-item {
-    grid-template-columns: minmax(0, 1fr) auto 20px;
+    grid-template-columns: minmax(0, 1fr) auto auto 20px;
     gap: 10px;
     padding-inline: 16px;
   }

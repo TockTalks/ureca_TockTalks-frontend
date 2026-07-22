@@ -9,9 +9,14 @@ const PAGE_SIZE = 20
 const PRICE_BATCH_SIZE = 4
 const PRICE_BATCH_DELAY_MS = 250
 
-type PriceLoadProgress = {
+type QuoteLoadProgress = {
   completed: number
   total: number
+}
+
+type StockQuote = {
+  currentPrice: number
+  changeRate: number
 }
 
 const wait = (milliseconds: number) =>
@@ -24,10 +29,12 @@ function StocksPage() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [prices, setPrices] = useState<Record<string, number | null>>({})
-  const [priceSortDirection, setPriceSortDirection] = useState<'desc' | 'asc' | null>(null)
-  const [isLoadingAllPrices, setIsLoadingAllPrices] = useState(false)
-  const [priceLoadProgress, setPriceLoadProgress] = useState<PriceLoadProgress>({
+  const [quotes, setQuotes] = useState<Record<string, StockQuote | null>>({})
+  const [changeRateSortDirection, setChangeRateSortDirection] = useState<
+    'desc' | 'asc' | null
+  >(null)
+  const [isLoadingAllQuotes, setIsLoadingAllQuotes] = useState(false)
+  const [quoteLoadProgress, setQuoteLoadProgress] = useState<QuoteLoadProgress>({
     completed: 0,
     total: 0,
   })
@@ -35,9 +42,9 @@ function StocksPage() {
   const [favoriteStocks, setFavoriteStocks] = useState<FavoriteStock[] | null>(null)
   const [favoritePrices, setFavoritePrices] = useState<Record<string, number | null>>({})
   const [favoriteSubmittingCode, setFavoriteSubmittingCode] = useState<string | null>(null)
-  const requestedPriceCodesRef = useRef(new Set<string>())
+  const requestedQuoteCodesRef = useRef(new Set<string>())
   const requestedFavoritePriceCodesRef = useRef(new Set<string>())
-  const allPricesLoadedRef = useRef(false)
+  const allQuotesLoadedRef = useRef(false)
   const mountedRef = useRef(true)
 
   useEffect(() => {
@@ -165,35 +172,35 @@ function StocksPage() {
   }, [query])
 
   const sortedStocks = useMemo(() => {
-    if (priceSortDirection === null) {
+    if (changeRateSortDirection === null) {
       return filteredStocks
     }
 
     return [...filteredStocks].sort((firstStock, secondStock) => {
-      const firstPrice = prices[firstStock.stockCode]
-      const secondPrice = prices[secondStock.stockCode]
+      const firstQuote = quotes[firstStock.stockCode]
+      const secondQuote = quotes[secondStock.stockCode]
 
-      if (typeof firstPrice !== 'number' && typeof secondPrice !== 'number') {
+      if (!firstQuote && !secondQuote) {
         return firstStock.stockName.localeCompare(secondStock.stockName, 'ko-KR')
       }
 
-      if (typeof firstPrice !== 'number') {
+      if (!firstQuote) {
         return 1
       }
 
-      if (typeof secondPrice !== 'number') {
+      if (!secondQuote) {
         return -1
       }
 
-      if (firstPrice === secondPrice) {
+      if (firstQuote.changeRate === secondQuote.changeRate) {
         return firstStock.stockName.localeCompare(secondStock.stockName, 'ko-KR')
       }
 
-      return priceSortDirection === 'desc'
-        ? secondPrice - firstPrice
-        : firstPrice - secondPrice
+      return changeRateSortDirection === 'desc'
+        ? secondQuote.changeRate - firstQuote.changeRate
+        : firstQuote.changeRate - secondQuote.changeRate
     })
-  }, [filteredStocks, prices, priceSortDirection])
+  }, [changeRateSortDirection, filteredStocks, quotes])
 
   const visibleStocks = useMemo(
     () => sortedStocks.slice(0, visibleCount),
@@ -201,17 +208,17 @@ function StocksPage() {
   )
   const hasMore = visibleCount < sortedStocks.length
 
-  const loadPrices = useCallback(
+  const loadQuotes = useCallback(
     async (
       targetStocks: StockInfo[],
-      onProgress?: (progress: PriceLoadProgress) => void,
+      onProgress?: (progress: QuoteLoadProgress) => void,
     ) => {
       const pendingStocks = targetStocks.filter(
-        (stock) => !requestedPriceCodesRef.current.has(stock.stockCode),
+        (stock) => !requestedQuoteCodesRef.current.has(stock.stockCode),
       )
       let completed = targetStocks.length - pendingStocks.length
 
-      pendingStocks.forEach((stock) => requestedPriceCodesRef.current.add(stock.stockCode))
+      pendingStocks.forEach((stock) => requestedQuoteCodesRef.current.add(stock.stockCode))
       onProgress?.({ completed, total: targetStocks.length })
 
       for (let index = 0; index < pendingStocks.length; index += PRICE_BATCH_SIZE) {
@@ -221,17 +228,21 @@ function StocksPage() {
           batch.map(async (stock) => {
             try {
               const snapshot = await api.get<PriceSnapshot>(`/api/price/${stock.stockCode}`)
-              const price = Number(snapshot.stck_prpr)
+              const currentPrice = Number(snapshot.stck_prpr)
+              const changeRate = Number(snapshot.prdy_ctrt)
 
               if (mountedRef.current) {
-                setPrices((current) => ({
+                setQuotes((current) => ({
                   ...current,
-                  [stock.stockCode]: Number.isFinite(price) ? price : null,
+                  [stock.stockCode]:
+                    Number.isFinite(currentPrice) && Number.isFinite(changeRate)
+                      ? { currentPrice, changeRate }
+                      : null,
                 }))
               }
             } catch {
               if (mountedRef.current) {
-                setPrices((current) => ({ ...current, [stock.stockCode]: null }))
+                setQuotes((current) => ({ ...current, [stock.stockCode]: null }))
               }
             }
           }),
@@ -248,40 +259,40 @@ function StocksPage() {
     [],
   )
 
-  const togglePriceSort = async () => {
-    if (isLoadingAllPrices) return
+  const toggleChangeRateSort = async () => {
+    if (isLoadingAllQuotes) return
 
-    if (!allPricesLoadedRef.current) {
-      setIsLoadingAllPrices(true)
-      setPriceLoadProgress({ completed: 0, total: stocks.length })
+    if (!allQuotesLoadedRef.current) {
+      setIsLoadingAllQuotes(true)
+      setQuoteLoadProgress({ completed: 0, total: stocks.length })
 
       try {
-        await loadPrices(stocks, (progress) => {
+        await loadQuotes(stocks, (progress) => {
           if (mountedRef.current) {
-            setPriceLoadProgress(progress)
+            setQuoteLoadProgress(progress)
           }
         })
 
-        allPricesLoadedRef.current = true
+        allQuotesLoadedRef.current = true
 
         if (mountedRef.current) {
-          setPriceSortDirection('desc')
+          setChangeRateSortDirection('desc')
         }
       } finally {
         if (mountedRef.current) {
-          setIsLoadingAllPrices(false)
+          setIsLoadingAllQuotes(false)
         }
       }
 
       return
     }
 
-    setPriceSortDirection((current) => (current === 'desc' ? 'asc' : 'desc'))
+    setChangeRateSortDirection((current) => (current === 'desc' ? 'asc' : 'desc'))
   }
 
   useEffect(() => {
-    void loadPrices(visibleStocks)
-  }, [visibleStocks, loadPrices])
+    void loadQuotes(visibleStocks)
+  }, [visibleStocks, loadQuotes])
 
   useEffect(() => {
     const target = loadMoreRef.current
@@ -397,30 +408,31 @@ function StocksPage() {
           <section className="card stocks-list-card" aria-label="종목 목록">
             <div className="stocks-list-header">
               <span>종목명</span>
+              <span className="stocks-list-price-heading">현재가</span>
               <button
                 type="button"
                 className="stock-price-sort-button"
-                onClick={() => void togglePriceSort()}
-                disabled={isLoadingAllPrices}
+                onClick={() => void toggleChangeRateSort()}
+                disabled={isLoadingAllQuotes}
                 aria-label={
-                  isLoadingAllPrices
-                    ? `전체 종목 시세 불러오는 중 ${priceLoadProgress.completed}/${priceLoadProgress.total}`
-                    : priceSortDirection === 'desc'
-                    ? '현재가 낮은 순으로 정렬'
-                    : '현재가 높은 순으로 정렬'
+                  isLoadingAllQuotes
+                    ? `전체 종목 시세 불러오는 중 ${quoteLoadProgress.completed}/${quoteLoadProgress.total}`
+                    : changeRateSortDirection === 'desc'
+                      ? '등락률 낮은 순으로 정렬'
+                      : '등락률 높은 순으로 정렬'
                 }
               >
                 <span>
-                  {isLoadingAllPrices
-                    ? `${priceLoadProgress.completed}/${priceLoadProgress.total}`
-                    : '현재가'}
+                  {isLoadingAllQuotes
+                    ? `${quoteLoadProgress.completed}/${quoteLoadProgress.total}`
+                    : '등락률'}
                 </span>
                 <span className="stock-price-sort-icon" aria-hidden="true">
-                  {isLoadingAllPrices
+                  {isLoadingAllQuotes
                     ? '…'
-                    : priceSortDirection === 'desc'
-                    ? '↓'
-                    : priceSortDirection === 'asc'
+                    : changeRateSortDirection === 'desc'
+                      ? '↓'
+                      : changeRateSortDirection === 'asc'
                       ? '↑'
                       : '↕'}
                 </span>
@@ -430,7 +442,7 @@ function StocksPage() {
 
             <ul className="stocks-list">
               {visibleStocks.map((stock) => {
-                const currentPrice = prices[stock.stockCode]
+                const quote = quotes[stock.stockCode]
                 const isFavorite = favoriteStockCodes.has(stock.stockCode)
 
                 return (
@@ -459,11 +471,26 @@ function StocksPage() {
                     >
                       <span className="stock-list-name">{stock.stockName}</span>
                       <span className="stock-list-price">
-                        {currentPrice === undefined
+                        {quote === undefined
                           ? '조회 중…'
-                          : currentPrice === null
+                          : quote === null
                             ? '-'
-                            : `${currentPrice.toLocaleString('ko-KR')}원`}
+                            : `${quote.currentPrice.toLocaleString('ko-KR')}원`}
+                      </span>
+                      <span
+                        className={`stock-list-change-rate ${
+                          quote && quote.changeRate > 0
+                            ? 'text-rise'
+                            : quote && quote.changeRate < 0
+                              ? 'text-fall'
+                              : ''
+                        }`}
+                      >
+                        {quote === undefined
+                          ? '조회 중…'
+                          : quote === null
+                            ? '-'
+                            : `${quote.changeRate > 0 ? '+' : ''}${quote.changeRate.toFixed(2)}%`}
                       </span>
                       <span className="stock-list-arrow" aria-hidden="true">
                         →
