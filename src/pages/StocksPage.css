@@ -137,14 +137,19 @@
   font-size: 16px;
 }
 
-.stocks-load-more {
-  min-height: 72px;
+.stocks-pagination {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-secondary);
-  font-size: 13px;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.stocks-pagination-status {
+  min-width: 64px;
   text-align: center;
+  font-size: 13px;
+  color: var(--color-text-secondary);
 }
 
 @media (max-width: 576px) {

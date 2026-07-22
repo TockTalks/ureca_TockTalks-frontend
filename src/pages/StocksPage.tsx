@@ -5,17 +5,18 @@ import type { PriceSnapshot, StockInfo } from '../lib/types'
 import { useAuth } from '../lib/useAuth'
 import './StocksPage.css'
 
-const PAGE_SIZE = 20
+// 한 페이지에 보여줄 개수. 페이지를 넘길 때마다 종목 수만큼 시세 API를
+// 개별 호출하므로, 한 번에 너무 많이 쏘지 않도록 20개 미만으로 유지한다.
+const PAGE_SIZE = 12
 
 function StocksPage() {
   const { me, authChecked, logout } = useAuth()
   const [stocks, setStocks] = useState<StockInfo[]>([])
   const [query, setQuery] = useState('')
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [prices, setPrices] = useState<Record<string, number | null>>({})
-  const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const requestedPriceCodesRef = useRef(new Set<string>())
   const mountedRef = useRef(true)
 
@@ -49,18 +50,25 @@ function StocksPage() {
     )
   }, [query, stocks])
 
+  const totalPages = Math.max(1, Math.ceil(filteredStocks.length / PAGE_SIZE))
+
+  // 검색어가 바뀌면 결과 범위가 바뀌니 1페이지로 되돌린다.
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE)
+    setPage(1)
   }, [query])
 
-  const visibleStocks = useMemo(
-    () => filteredStocks.slice(0, visibleCount),
-    [filteredStocks, visibleCount],
-  )
-  const hasMore = visibleCount < filteredStocks.length
+  // 검색 결과가 줄어들어 현재 페이지가 범위를 벗어나면 마지막 페이지로 보정한다.
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages))
+  }, [totalPages])
+
+  const pagedStocks = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE
+    return filteredStocks.slice(start, start + PAGE_SIZE)
+  }, [filteredStocks, page])
 
   useEffect(() => {
-    const pendingStocks = visibleStocks.filter(
+    const pendingStocks = pagedStocks.filter(
       (stock) => !requestedPriceCodesRef.current.has(stock.stockCode),
     )
 
@@ -95,27 +103,7 @@ function StocksPage() {
     }
 
     void loadPrices()
-  }, [visibleStocks])
-
-  useEffect(() => {
-    const target = loadMoreRef.current
-    if (!target || !hasMore) return
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) return
-
-        setVisibleCount((current) =>
-          Math.min(current + PAGE_SIZE, filteredStocks.length),
-        )
-      },
-      { rootMargin: '160px 0px' },
-    )
-
-    observer.observe(target)
-
-    return () => observer.disconnect()
-  }, [filteredStocks.length, hasMore])
+  }, [pagedStocks])
 
   return (
     <>
@@ -164,7 +152,7 @@ function StocksPage() {
           </div>
         )}
 
-        {!loading && !errorMessage && visibleStocks.length > 0 && (
+        {!loading && !errorMessage && pagedStocks.length > 0 && (
           <section className="card stocks-list-card" aria-label="종목 목록">
             <div className="stocks-list-header" aria-hidden="true">
               <span>종목명</span>
@@ -172,7 +160,7 @@ function StocksPage() {
             </div>
 
             <ul className="stocks-list">
-              {visibleStocks.map((stock) => {
+              {pagedStocks.map((stock) => {
                 const currentPrice = prices[stock.stockCode]
 
                 return (
@@ -202,11 +190,29 @@ function StocksPage() {
         )}
 
         {!loading && !errorMessage && filteredStocks.length > 0 && (
-          <div ref={loadMoreRef} className="stocks-load-more" aria-live="polite">
-            {hasMore
-              ? `아래로 스크롤하면 ${Math.min(PAGE_SIZE, filteredStocks.length - visibleCount)}개를 더 불러옵니다.`
-              : `전체 ${filteredStocks.length.toLocaleString('ko-KR')}개 종목을 모두 표시했습니다.`}
-          </div>
+          <nav className="stocks-pagination" aria-label="종목 목록 페이지">
+            <button
+              type="button"
+              className="btn btn-default"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={page <= 1}
+            >
+              이전
+            </button>
+
+            <span className="stocks-pagination-status">
+              {page} / {totalPages}
+            </span>
+
+            <button
+              type="button"
+              className="btn btn-default"
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              disabled={page >= totalPages}
+            >
+              다음
+            </button>
+          </nav>
         )}
       </main>
     </>
