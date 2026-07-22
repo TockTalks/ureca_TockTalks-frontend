@@ -147,3 +147,12 @@ export type Page<T> = {
   first: boolean
   last: boolean
 }
+
+export type DailyPrice = {
+  date: string
+  openPrice: number
+  highPrice: number
+  lowPrice: number
+  closePrice: number
+  volume: number
+}
