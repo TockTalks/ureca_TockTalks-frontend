@@ -45,9 +45,7 @@ const QUICK_LINKS = [
   },
 ]
 
-const UP_COLOR = '#ff4d4f'
-const DOWN_COLOR = '#1677ff'
-const NEUTRAL_COLOR = '#00000073'
+const CHART_LINE_COLOR = '#ff4d4f'
 
 function PriceTooltip({ active, payload }: PriceTooltipProps) {
   if (!active || !payload || payload.length === 0) return null
@@ -101,7 +99,6 @@ function HomePage() {
   const changeRate = snapshot ? Number(snapshot.prdy_ctrt) : null
   const isUp = snapshot?.prdy_vrss_sign === '1' || snapshot?.prdy_vrss_sign === '2'
   const isDown = snapshot?.prdy_vrss_sign === '4' || snapshot?.prdy_vrss_sign === '5'
-  const trendColor = isUp ? UP_COLOR : isDown ? DOWN_COLOR : NEUTRAL_COLOR
 
   const handleStockChange = (stock: FeaturedStock) => {
     setStockCode(stock.stockCode)
@@ -170,8 +167,8 @@ function HomePage() {
                   <AreaChart data={points} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="priceFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={trendColor} stopOpacity={0.22} />
-                        <stop offset="100%" stopColor={trendColor} stopOpacity={0} />
+                        <stop offset="0%" stopColor={CHART_LINE_COLOR} stopOpacity={0.22} />
+                        <stop offset="100%" stopColor={CHART_LINE_COLOR} stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="time" hide />
@@ -185,15 +182,15 @@ function HomePage() {
                       )}
                     />
                     <Area
-                      type="natural"
+                      type="linear"
                       dataKey="price"
-                      stroke={trendColor}
+                      stroke={CHART_LINE_COLOR}
                       strokeWidth={2}
                       fill="url(#priceFill)"
                       dot={false}
                       activeDot={{
                         r: 4,
-                        stroke: trendColor,
+                        stroke: CHART_LINE_COLOR,
                         strokeWidth: 2,
                         fill: 'var(--color-bg-container)',
                       }}
