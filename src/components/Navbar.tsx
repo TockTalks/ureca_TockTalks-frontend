@@ -12,6 +12,7 @@ const navigationItems = [
   { href: '/portfolio', label: '포트폴리오' },
   { href: '/community', label: '커뮤니티' },
   { href: '/rooms', label: '방 목록' },
+  { href: '/ranking', label: '랭킹' },
 ]
 
 function Navbar({ me, authChecked, onLogout }: NavbarProps) {

@@ -3,8 +3,9 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'rec
 import Navbar from '../components/Navbar'
 import { api } from '../lib/apiClient'
 import { usePriceStream, type PricePoint } from '../lib/priceSocket'
-import type { FavoriteStock } from '../lib/types'
+import type { FavoriteStock, Room, RoomRanking } from '../lib/types'
 import { useAuth } from '../lib/useAuth'
+import { formatMoney } from '../lib/format'
 import './HomePage.css'
 
 type FeaturedStock = {
@@ -65,6 +66,8 @@ function HomePage() {
   const [featuredStocks, setFeaturedStocks] = useState<FeaturedStock[]>(DEFAULT_FEATURED_STOCKS)
   const [stockCode, setStockCode] = useState(DEFAULT_FEATURED_STOCKS[0].stockCode)
   const [stockName, setStockName] = useState(DEFAULT_FEATURED_STOCKS[0].stockName)
+  const [ranking, setRanking] = useState<RoomRanking[]>([])
+  const [rankingError, setRankingError] = useState(false)
 
   useEffect(() => {
     if (!authChecked || !me) return
@@ -93,12 +96,23 @@ function HomePage() {
       })
   }, [authChecked, me])
 
+  useEffect(() => {
+    api
+      .get<Room>('/api/rooms/default')
+      .then((room) => api.get<RoomRanking[]>(`/api/rooms/${room.id}/ranking`))
+      .then((list) => setRanking(list))
+      .catch(() => setRankingError(true))
+  }, [])
+
   const { points, latestPrice, snapshot } = usePriceStream(stockCode)
 
   const changeAmount = snapshot ? Number(snapshot.prdy_vrss) : null
   const changeRate = snapshot ? Number(snapshot.prdy_ctrt) : null
   const isUp = snapshot?.prdy_vrss_sign === '1' || snapshot?.prdy_vrss_sign === '2'
   const isDown = snapshot?.prdy_vrss_sign === '4' || snapshot?.prdy_vrss_sign === '5'
+
+  const topRanking = ranking.slice(0, 10)
+  const myRanking = me ? ranking.find((entry) => entry.memberId === me.id) : undefined
 
   const handleStockChange = (stock: FeaturedStock) => {
     setStockCode(stock.stockCode)
@@ -205,46 +219,85 @@ function HomePage() {
           </div>
 
           <aside className="card investment-panel">
-            <div>
-              <span className="section-eyebrow">MY ASSET</span>
-              <h2>내 투자 현황</h2>
+            <div className="investment-top">
+              <div>
+                <span className="section-eyebrow">MY ASSET</span>
+                <h2>내 투자 현황</h2>
+              </div>
+
+              {!authChecked && <div className="investment-message">사용자 정보를 확인하고 있습니다.</div>}
+
+              {authChecked && me && (
+                <>
+                  <div className="investment-user">
+                    <strong>{me.nickname}</strong>님의 포트폴리오
+                  </div>
+
+                  <div className="investment-preview">
+                    <div className="investment-preview-item">
+                      <span>총자산</span>
+                      <strong>포트폴리오에서 확인</strong>
+                    </div>
+                    <div className="investment-preview-item">
+                      <span>보유 종목</span>
+                      <strong>포트폴리오에서 확인</strong>
+                    </div>
+                  </div>
+
+                  <a href="/portfolio" className="btn btn-primary btn-block investment-button">
+                    포트폴리오 보기
+                  </a>
+                </>
+              )}
+
+              {authChecked && !me && (
+                <>
+                  <div className="investment-message">
+                    로그인하면 내 자산과 보유 종목을 확인할 수 있습니다.
+                  </div>
+                  <a href="/login" className="btn btn-primary btn-block investment-button">
+                    로그인
+                  </a>
+                </>
+              )}
             </div>
 
-            {!authChecked && <div className="investment-message">사용자 정보를 확인하고 있습니다.</div>}
+            <div className="investment-ranking">
+              <a href="/ranking" className="investment-ranking-header">
+                <span className="section-eyebrow">RANKING</span>
+                <h3>실시간 랭킹 TOP 10</h3>
+              </a>
 
-            {authChecked && me && (
-              <>
-                <div className="investment-user">
-                  <strong>{me.nickname}</strong>님의 포트폴리오
+              {ranking.length === 0 ? (
+                <div className="investment-message investment-ranking-empty">
+                  {rankingError ? '랭킹을 불러오지 못했습니다.' : '아직 순위 데이터가 없습니다.'}
                 </div>
+              ) : (
+                <>
+                  <ol className="ranking-list">
+                    {topRanking.map((entry) => (
+                      <li key={entry.memberId} className="ranking-row ranking-list-item">
+                        <span className={`ranking-rank ${entry.rank <= 3 ? `ranking-rank-${entry.rank}` : ''}`}>
+                          {entry.rank}
+                        </span>
+                        <span className="ranking-nickname">{entry.nickname}</span>
+                        <span className="ranking-balance">{formatMoney(entry.balance)}</span>
+                      </li>
+                    ))}
+                  </ol>
 
-                <div className="investment-preview">
-                  <div className="investment-preview-item">
-                    <span>총자산</span>
-                    <strong>포트폴리오에서 확인</strong>
-                  </div>
-                  <div className="investment-preview-item">
-                    <span>보유 종목</span>
-                    <strong>포트폴리오에서 확인</strong>
-                  </div>
-                </div>
-
-                <a href="/portfolio" className="btn btn-primary btn-block investment-button">
-                  포트폴리오 보기
-                </a>
-              </>
-            )}
-
-            {authChecked && !me && (
-              <>
-                <div className="investment-message">
-                  로그인하면 내 자산과 보유 종목을 확인할 수 있습니다.
-                </div>
-                <a href="/login" className="btn btn-primary btn-block investment-button">
-                  로그인
-                </a>
-              </>
-            )}
+                  {myRanking && (
+                    <div className="ranking-row ranking-my-rank">
+                      <span className={`ranking-rank ${myRanking.rank <= 3 ? `ranking-rank-${myRanking.rank}` : ''}`}>
+                        {myRanking.rank}
+                      </span>
+                      <span className="ranking-nickname">{myRanking.nickname}</span>
+                      <span className="ranking-balance">{formatMoney(myRanking.balance)}</span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </aside>
         </section>
 

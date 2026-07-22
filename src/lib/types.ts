@@ -12,6 +12,13 @@ export type Room = {
   participantCount: number
 }
 
+export type RoomRanking = {
+  rank: number
+  memberId: number
+  nickname: string
+  balance: number
+}
+
 export type RoomParticipant = {
   id: number
   roomId: number
