@@ -134,35 +134,53 @@ function HomePage() {
       .get<PortfolioSummary[]>('/api/portfolios')
       .then(async (portfolios) => {
         const detailResults = await Promise.allSettled(
-          portfolios
-            .filter((portfolio) => portfolio.holdingCount > 0)
-            .map((portfolio) =>
-              api.get<PortfolioDetail>(`/api/portfolios/${portfolio.roomParticipantId}`),
-            ),
+          portfolios.map((portfolio) => {
+            if (portfolio.holdingCount === 0) {
+              return Promise.resolve<PortfolioDetail>({
+                ...portfolio,
+                holdings: [],
+              })
+            }
+
+            return api.get<PortfolioDetail>(
+              `/api/portfolios/${portfolio.roomParticipantId}`,
+            )
+          }),
         )
 
         if (cancelled) return
 
-        const holdings = detailResults.flatMap((result) => {
-          if (result.status !== 'fulfilled') return []
+        const portfolioSnapshots = portfolios.map((portfolio, index) => {
+          const detailResult = detailResults[index]
 
-          return result.value.holdings.map((holding) => ({
-            ...holding,
-            roomName: result.value.roomName,
-            roomParticipantId: result.value.roomParticipantId,
-          }))
+          if (detailResult.status === 'fulfilled') {
+            return detailResult.value
+          }
+
+          return {
+            ...portfolio,
+            holdings: [],
+          } satisfies PortfolioDetail
         })
 
+        const holdings = portfolioSnapshots.flatMap((portfolio) =>
+          portfolio.holdings.map((holding) => ({
+            ...holding,
+            roomName: portfolio.roomName,
+            roomParticipantId: portfolio.roomParticipantId,
+          })),
+        )
+
         setPortfolioOverview({
-          totalAssetValue: portfolios.reduce(
+          totalAssetValue: portfolioSnapshots.reduce(
             (total, portfolio) => total + portfolio.totalAssetValue,
             0,
           ),
-          totalProfitAmount: portfolios.reduce(
+          totalProfitAmount: portfolioSnapshots.reduce(
             (total, portfolio) => total + portfolio.profitAmount,
             0,
           ),
-          totalHoldingCount: portfolios.reduce(
+          totalHoldingCount: portfolioSnapshots.reduce(
             (total, portfolio) => total + portfolio.holdingCount,
             0,
           ),
