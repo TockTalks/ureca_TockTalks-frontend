@@ -1,29 +1,55 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Navbar from '../components/Navbar'
 import { api, ApiError } from '../lib/apiClient'
 import type { FavoriteStock, PriceSnapshot, StockInfo } from '../lib/types'
 import { useAuth } from '../lib/useAuth'
 import './StocksPage.css'
 
-// 한 페이지에 보여줄 개수. 페이지를 넘길 때마다 종목 수만큼 시세 API를
-// 개별 호출하므로, 한 번에 너무 많이 쏘지 않도록 20개 미만으로 유지한다.
-const PAGE_SIZE = 12
+const PAGE_SIZE = 20
+const PRICE_BATCH_SIZE = 4
+const PRICE_BATCH_DELAY_MS = 250
+
+type QuoteLoadProgress = {
+  completed: number
+  total: number
+}
+
+type StockQuote = {
+  currentPrice: number
+  changeRate: number
+}
+
+const wait = (milliseconds: number) =>
+  new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds))
 
 function StocksPage() {
   const { me, authChecked, logout } = useAuth()
   const [stocks, setStocks] = useState<StockInfo[]>([])
   const [query, setQuery] = useState('')
-  const [page, setPage] = useState(1)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [prices, setPrices] = useState<Record<string, number | null>>({})
+  const [quotes, setQuotes] = useState<Record<string, StockQuote | null>>({})
+  const [changeRateSortDirection, setChangeRateSortDirection] = useState<
+    'desc' | 'asc' | null
+  >(null)
+  const [isLoadingAllQuotes, setIsLoadingAllQuotes] = useState(false)
+  const [quoteLoadProgress, setQuoteLoadProgress] = useState<QuoteLoadProgress>({
+    completed: 0,
+    total: 0,
+  })
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const [favoriteStocks, setFavoriteStocks] = useState<FavoriteStock[] | null>(null)
   const [favoritePrices, setFavoritePrices] = useState<Record<string, number | null>>({})
   const [favoriteSubmittingCode, setFavoriteSubmittingCode] = useState<string | null>(null)
-  const requestedPriceCodesRef = useRef(new Set<string>())
+  const requestedQuoteCodesRef = useRef(new Set<string>())
+  const requestedFavoritePriceCodesRef = useRef(new Set<string>())
+  const allQuotesLoadedRef = useRef(false)
   const mountedRef = useRef(true)
 
   useEffect(() => {
+    mountedRef.current = true
+
     return () => {
       mountedRef.current = false
     }
@@ -57,8 +83,12 @@ function StocksPage() {
   useEffect(() => {
     if (!favoriteStocks || favoriteStocks.length === 0) return
 
-    favoriteStocks.forEach((stock) => {
-      if (favoritePrices[stock.stockCode] !== undefined) return
+    const pendingStocks = favoriteStocks.filter(
+      (stock) => !requestedFavoritePriceCodesRef.current.has(stock.stockCode),
+    )
+
+    pendingStocks.forEach((stock) => {
+      requestedFavoritePriceCodesRef.current.add(stock.stockCode)
 
       api
         .get<PriceSnapshot>(`/api/price/${stock.stockCode}`)
@@ -137,60 +167,152 @@ function StocksPage() {
     )
   }, [query, stocks])
 
-  const totalPages = Math.max(1, Math.ceil(filteredStocks.length / PAGE_SIZE))
-
-  // 검색어가 바뀌면 결과 범위가 바뀌니 1페이지로 되돌린다.
   useEffect(() => {
-    setPage(1)
+    setVisibleCount(PAGE_SIZE)
   }, [query])
 
-  // 검색 결과가 줄어들어 현재 페이지가 범위를 벗어나면 마지막 페이지로 보정한다.
-  useEffect(() => {
-    setPage((current) => Math.min(current, totalPages))
-  }, [totalPages])
+  const sortedStocks = useMemo(() => {
+    if (changeRateSortDirection === null) {
+      return filteredStocks
+    }
 
-  const pagedStocks = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE
-    return filteredStocks.slice(start, start + PAGE_SIZE)
-  }, [filteredStocks, page])
+    return [...filteredStocks].sort((firstStock, secondStock) => {
+      const firstQuote = quotes[firstStock.stockCode]
+      const secondQuote = quotes[secondStock.stockCode]
 
-  useEffect(() => {
-    const pendingStocks = pagedStocks.filter(
-      (stock) => !requestedPriceCodesRef.current.has(stock.stockCode),
-    )
+      if (!firstQuote && !secondQuote) {
+        return firstStock.stockName.localeCompare(secondStock.stockName, 'ko-KR')
+      }
 
-    pendingStocks.forEach((stock) => requestedPriceCodesRef.current.add(stock.stockCode))
+      if (!firstQuote) {
+        return 1
+      }
 
-    const loadPrices = async () => {
-      const batchSize = 4
+      if (!secondQuote) {
+        return -1
+      }
 
-      for (let index = 0; index < pendingStocks.length; index += batchSize) {
-        const batch = pendingStocks.slice(index, index + batchSize)
+      if (firstQuote.changeRate === secondQuote.changeRate) {
+        return firstStock.stockName.localeCompare(secondStock.stockName, 'ko-KR')
+      }
+
+      return changeRateSortDirection === 'desc'
+        ? secondQuote.changeRate - firstQuote.changeRate
+        : firstQuote.changeRate - secondQuote.changeRate
+    })
+  }, [changeRateSortDirection, filteredStocks, quotes])
+
+  const visibleStocks = useMemo(
+    () => sortedStocks.slice(0, visibleCount),
+    [sortedStocks, visibleCount],
+  )
+  const hasMore = visibleCount < sortedStocks.length
+
+  const loadQuotes = useCallback(
+    async (
+      targetStocks: StockInfo[],
+      onProgress?: (progress: QuoteLoadProgress) => void,
+    ) => {
+      const pendingStocks = targetStocks.filter(
+        (stock) => !requestedQuoteCodesRef.current.has(stock.stockCode),
+      )
+      let completed = targetStocks.length - pendingStocks.length
+
+      pendingStocks.forEach((stock) => requestedQuoteCodesRef.current.add(stock.stockCode))
+      onProgress?.({ completed, total: targetStocks.length })
+
+      for (let index = 0; index < pendingStocks.length; index += PRICE_BATCH_SIZE) {
+        const batch = pendingStocks.slice(index, index + PRICE_BATCH_SIZE)
 
         await Promise.all(
           batch.map(async (stock) => {
             try {
               const snapshot = await api.get<PriceSnapshot>(`/api/price/${stock.stockCode}`)
-              const price = Number(snapshot.stck_prpr)
+              const currentPrice = Number(snapshot.stck_prpr)
+              const changeRate = Number(snapshot.prdy_ctrt)
 
               if (mountedRef.current) {
-                setPrices((current) => ({
+                setQuotes((current) => ({
                   ...current,
-                  [stock.stockCode]: Number.isFinite(price) ? price : null,
+                  [stock.stockCode]:
+                    Number.isFinite(currentPrice) && Number.isFinite(changeRate)
+                      ? { currentPrice, changeRate }
+                      : null,
                 }))
               }
             } catch {
               if (mountedRef.current) {
-                setPrices((current) => ({ ...current, [stock.stockCode]: null }))
+                setQuotes((current) => ({ ...current, [stock.stockCode]: null }))
               }
             }
           }),
         )
+
+        completed += batch.length
+        onProgress?.({ completed, total: targetStocks.length })
+
+        if (index + PRICE_BATCH_SIZE < pendingStocks.length) {
+          await wait(PRICE_BATCH_DELAY_MS)
+        }
       }
+    },
+    [],
+  )
+
+  const toggleChangeRateSort = async () => {
+    if (isLoadingAllQuotes) return
+
+    if (!allQuotesLoadedRef.current) {
+      setIsLoadingAllQuotes(true)
+      setQuoteLoadProgress({ completed: 0, total: stocks.length })
+
+      try {
+        await loadQuotes(stocks, (progress) => {
+          if (mountedRef.current) {
+            setQuoteLoadProgress(progress)
+          }
+        })
+
+        allQuotesLoadedRef.current = true
+
+        if (mountedRef.current) {
+          setChangeRateSortDirection('desc')
+        }
+      } finally {
+        if (mountedRef.current) {
+          setIsLoadingAllQuotes(false)
+        }
+      }
+
+      return
     }
 
-    void loadPrices()
-  }, [pagedStocks])
+    setChangeRateSortDirection((current) => (current === 'desc' ? 'asc' : 'desc'))
+  }
+
+  useEffect(() => {
+    void loadQuotes(visibleStocks)
+  }, [visibleStocks, loadQuotes])
+
+  useEffect(() => {
+    const target = loadMoreRef.current
+    if (!target || !hasMore) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return
+
+        setVisibleCount((current) =>
+          Math.min(current + PAGE_SIZE, filteredStocks.length),
+        )
+      },
+      { rootMargin: '160px 0px' },
+    )
+
+    observer.observe(target)
+
+    return () => observer.disconnect()
+  }, [filteredStocks.length, hasMore])
 
   return (
     <>
@@ -282,16 +404,45 @@ function StocksPage() {
           </div>
         )}
 
-        {!loading && !errorMessage && pagedStocks.length > 0 && (
+        {!loading && !errorMessage && visibleStocks.length > 0 && (
           <section className="card stocks-list-card" aria-label="종목 목록">
-            <div className="stocks-list-header" aria-hidden="true">
+            <div className="stocks-list-header">
               <span>종목명</span>
-              <span>현재가</span>
+              <span className="stocks-list-price-heading">현재가</span>
+              <button
+                type="button"
+                className="stock-price-sort-button"
+                onClick={() => void toggleChangeRateSort()}
+                disabled={isLoadingAllQuotes}
+                aria-label={
+                  isLoadingAllQuotes
+                    ? `전체 종목 시세 불러오는 중 ${quoteLoadProgress.completed}/${quoteLoadProgress.total}`
+                    : changeRateSortDirection === 'desc'
+                      ? '등락률 낮은 순으로 정렬'
+                      : '등락률 높은 순으로 정렬'
+                }
+              >
+                <span>
+                  {isLoadingAllQuotes
+                    ? `${quoteLoadProgress.completed}/${quoteLoadProgress.total}`
+                    : '등락률'}
+                </span>
+                <span className="stock-price-sort-icon" aria-hidden="true">
+                  {isLoadingAllQuotes
+                    ? '…'
+                    : changeRateSortDirection === 'desc'
+                      ? '↓'
+                      : changeRateSortDirection === 'asc'
+                      ? '↑'
+                      : '↕'}
+                </span>
+              </button>
+              <span aria-hidden="true" />
             </div>
 
             <ul className="stocks-list">
-              {pagedStocks.map((stock) => {
-                const currentPrice = prices[stock.stockCode]
+              {visibleStocks.map((stock) => {
+                const quote = quotes[stock.stockCode]
                 const isFavorite = favoriteStockCodes.has(stock.stockCode)
 
                 return (
@@ -320,11 +471,26 @@ function StocksPage() {
                     >
                       <span className="stock-list-name">{stock.stockName}</span>
                       <span className="stock-list-price">
-                        {currentPrice === undefined
+                        {quote === undefined
                           ? '조회 중…'
-                          : currentPrice === null
+                          : quote === null
                             ? '-'
-                            : `${currentPrice.toLocaleString('ko-KR')}원`}
+                            : `${quote.currentPrice.toLocaleString('ko-KR')}원`}
+                      </span>
+                      <span
+                        className={`stock-list-change-rate ${
+                          quote && quote.changeRate > 0
+                            ? 'text-rise'
+                            : quote && quote.changeRate < 0
+                              ? 'text-fall'
+                              : ''
+                        }`}
+                      >
+                        {quote === undefined
+                          ? '조회 중…'
+                          : quote === null
+                            ? '-'
+                            : `${quote.changeRate > 0 ? '+' : ''}${quote.changeRate.toFixed(2)}%`}
                       </span>
                       <span className="stock-list-arrow" aria-hidden="true">
                         →
@@ -338,29 +504,11 @@ function StocksPage() {
         )}
 
         {!loading && !errorMessage && filteredStocks.length > 0 && (
-          <nav className="stocks-pagination" aria-label="종목 목록 페이지">
-            <button
-              type="button"
-              className="btn btn-default"
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-              disabled={page <= 1}
-            >
-              이전
-            </button>
-
-            <span className="stocks-pagination-status">
-              {page} / {totalPages}
-            </span>
-
-            <button
-              type="button"
-              className="btn btn-default"
-              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-              disabled={page >= totalPages}
-            >
-              다음
-            </button>
-          </nav>
+          <div ref={loadMoreRef} className="stocks-load-more" aria-live="polite">
+            {hasMore
+              ? `아래로 스크롤하면 ${Math.min(PAGE_SIZE, filteredStocks.length - visibleCount)}개를 더 불러옵니다.`
+              : `전체 ${filteredStocks.length.toLocaleString('ko-KR')}개 종목을 모두 표시했습니다.`}
+          </div>
         )}
       </main>
     </>

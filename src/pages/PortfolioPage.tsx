@@ -21,11 +21,36 @@ function PortfolioPage() {
 
   useEffect(() => {
     if (!me) return
+
+    let cancelled = false
+
+    setLoaded(false)
+    setErrorMessage(null)
+
     api
       .get<PortfolioSummary[]>('/api/portfolios')
-      .then(setPortfolios)
-      .catch((err) => setErrorMessage(err instanceof ApiError ? err.message : '포트폴리오를 불러오지 못했습니다.'))
-      .finally(() => setLoaded(true))
+      .then((data) => {
+        if (cancelled) return
+
+        setPortfolios(data)
+        setErrorMessage(null)
+      })
+      .catch((err) => {
+        if (cancelled) return
+
+        setErrorMessage(
+          err instanceof ApiError ? err.message : '포트폴리오를 불러오지 못했습니다.',
+        )
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoaded(true)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [me])
 
   const totalAssetValue = portfolios.reduce((sum, p) => sum + p.totalAssetValue, 0)

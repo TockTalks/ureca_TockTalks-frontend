@@ -7,6 +7,8 @@ import { formatMoney, formatPercent } from '../lib/format'
 import { usePriceStream, type PricePoint } from '../lib/priceSocket'
 import type {
   FavoriteStock,
+  PortfolioSummary,
+  Room,
   StockInfo,
   TradeExecution,
   TradeHolding,
@@ -47,14 +49,62 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [execution, setExecution] = useState<TradeExecution | null>(null)
+  const [participantLoading, setParticipantLoading] = useState(false)
+  const [participantError, setParticipantError] = useState<string | null>(null)
 
-  const roomParticipantId = useMemo(() => {
+  const requestedRoomParticipantId = useMemo(() => {
     const rawValue = new URLSearchParams(window.location.search).get('roomParticipantId')
     if (!rawValue) return null
 
     const parsedValue = Number(rawValue)
     return Number.isSafeInteger(parsedValue) && parsedValue > 0 ? parsedValue : null
   }, [])
+  const [roomParticipantId, setRoomParticipantId] = useState(requestedRoomParticipantId)
+
+  useEffect(() => {
+    if (!me || roomParticipantId) return
+
+    let cancelled = false
+    setParticipantLoading(true)
+    setParticipantError(null)
+
+    Promise.all([
+      api.get<Room>('/api/rooms/default'),
+      api.get<PortfolioSummary[]>('/api/portfolios'),
+    ])
+      .then(([defaultRoom, portfolios]) => {
+        if (cancelled) return
+
+        const defaultPortfolio = portfolios.find(
+          (portfolio) => portfolio.roomId === defaultRoom.id,
+        )
+
+        if (!defaultPortfolio) {
+          setParticipantError('기본 투자 계좌를 찾을 수 없습니다.')
+          return
+        }
+
+        setRoomParticipantId(defaultPortfolio.roomParticipantId)
+      })
+      .catch((error) => {
+        if (cancelled) return
+
+        setParticipantError(
+          error instanceof ApiError
+            ? error.message
+            : '기본 투자 계좌를 불러오지 못했습니다.',
+        )
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setParticipantLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [me, roomParticipantId])
 
   useEffect(() => {
     api
@@ -144,7 +194,9 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
     }
 
     if (!roomParticipantId) {
-      setErrorMessage('거래할 투자방에서 이 종목을 열어야 주문할 수 있습니다.')
+      setErrorMessage(
+        participantError ?? '기본 투자 계좌를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.',
+      )
       return
     }
 
@@ -339,8 +391,16 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
                 <strong>{formatMoney(estimatedAmount)}</strong>
               </div>
 
-              {!roomParticipantId && (
-                <p className="order-guide">거래할 투자방에서 진입하면 실제 주문을 진행할 수 있습니다.</p>
+              {me && participantLoading && (
+                <p className="order-guide">기본 투자 계좌를 준비하는 중입니다.</p>
+              )}
+
+              {me && participantError && !participantLoading && (
+                <p className="alert-error">{participantError}</p>
+              )}
+
+              {!me && authChecked && (
+                <p className="order-guide">로그인하면 기본 투자 계좌로 바로 주문할 수 있습니다.</p>
               )}
 
               {errorMessage && <p className="alert-error">{errorMessage}</p>}
@@ -359,7 +419,7 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
                 className={`btn btn-block order-submit ${
                   orderType === 'BUY' ? 'order-submit-buy' : 'order-submit-sell'
                 }`}
-                disabled={submitting || !authChecked}
+                disabled={submitting || !authChecked || (!!me && !roomParticipantId)}
               >
                 {submitting
                   ? '주문 처리 중…'
