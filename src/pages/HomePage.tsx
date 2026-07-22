@@ -2,10 +2,17 @@ import { useEffect, useState } from 'react'
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import Navbar from '../components/Navbar'
 import { api } from '../lib/apiClient'
+import { formatMoney, formatPercent } from '../lib/format'
 import { usePriceStream, type PricePoint } from '../lib/priceSocket'
-import type { FavoriteStock, Room, RoomRanking } from '../lib/types'
+import type {
+  FavoriteStock,
+  PortfolioDetail,
+  PortfolioHolding,
+  PortfolioSummary,
+  Room,
+  RoomRanking,
+} from '../lib/types'
 import { useAuth } from '../lib/useAuth'
-import { formatMoney } from '../lib/format'
 import './HomePage.css'
 
 type FeaturedStock = {
@@ -16,6 +23,18 @@ type FeaturedStock = {
 type PriceTooltipProps = {
   active?: boolean
   payload?: Array<{ payload: PricePoint }>
+}
+
+type HomeHolding = PortfolioHolding & {
+  roomName: string
+  roomParticipantId: number
+}
+
+type PortfolioOverview = {
+  totalAssetValue: number
+  totalProfitAmount: number
+  totalHoldingCount: number
+  topHoldings: HomeHolding[]
 }
 
 const DEFAULT_FEATURED_STOCKS: FeaturedStock[] = [
@@ -66,6 +85,9 @@ function HomePage() {
   const [featuredStocks, setFeaturedStocks] = useState<FeaturedStock[]>(DEFAULT_FEATURED_STOCKS)
   const [stockCode, setStockCode] = useState(DEFAULT_FEATURED_STOCKS[0].stockCode)
   const [stockName, setStockName] = useState(DEFAULT_FEATURED_STOCKS[0].stockName)
+  const [portfolioOverview, setPortfolioOverview] = useState<PortfolioOverview | null>(null)
+  const [portfolioLoading, setPortfolioLoading] = useState(false)
+  const [portfolioError, setPortfolioError] = useState(false)
   const [ranking, setRanking] = useState<RoomRanking[]>([])
   const [rankingError, setRankingError] = useState(false)
 
@@ -94,6 +116,74 @@ function HomePage() {
       .catch(() => {
         // 관심 종목 조회 실패 시 기본 대표 종목을 그대로 사용합니다.
       })
+  }, [authChecked, me])
+
+  useEffect(() => {
+    if (!authChecked || !me) {
+      setPortfolioOverview(null)
+      setPortfolioLoading(false)
+      setPortfolioError(false)
+      return
+    }
+
+    let cancelled = false
+    setPortfolioLoading(true)
+    setPortfolioError(false)
+
+    api
+      .get<PortfolioSummary[]>('/api/portfolios')
+      .then(async (portfolios) => {
+        const detailResults = await Promise.allSettled(
+          portfolios
+            .filter((portfolio) => portfolio.holdingCount > 0)
+            .map((portfolio) =>
+              api.get<PortfolioDetail>(`/api/portfolios/${portfolio.roomParticipantId}`),
+            ),
+        )
+
+        if (cancelled) return
+
+        const holdings = detailResults.flatMap((result) => {
+          if (result.status !== 'fulfilled') return []
+
+          return result.value.holdings.map((holding) => ({
+            ...holding,
+            roomName: result.value.roomName,
+            roomParticipantId: result.value.roomParticipantId,
+          }))
+        })
+
+        setPortfolioOverview({
+          totalAssetValue: portfolios.reduce(
+            (total, portfolio) => total + portfolio.totalAssetValue,
+            0,
+          ),
+          totalProfitAmount: portfolios.reduce(
+            (total, portfolio) => total + portfolio.profitAmount,
+            0,
+          ),
+          totalHoldingCount: portfolios.reduce(
+            (total, portfolio) => total + portfolio.holdingCount,
+            0,
+          ),
+          topHoldings: holdings
+            .sort((left, right) => right.evaluationAmount - left.evaluationAmount)
+            .slice(0, 3),
+        })
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPortfolioOverview(null)
+          setPortfolioError(true)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setPortfolioLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [authChecked, me])
 
   useEffect(() => {
@@ -233,16 +323,75 @@ function HomePage() {
                     <strong>{me.nickname}</strong>님의 포트폴리오
                   </div>
 
-                  <div className="investment-preview">
-                    <div className="investment-preview-item">
-                      <span>총자산</span>
-                      <strong>포트폴리오에서 확인</strong>
+                  {portfolioLoading && (
+                    <div className="investment-message" role="status">
+                      자산 정보를 불러오는 중입니다.
                     </div>
-                    <div className="investment-preview-item">
-                      <span>보유 종목</span>
-                      <strong>포트폴리오에서 확인</strong>
+                  )}
+
+                  {!portfolioLoading && portfolioError && (
+                    <div className="investment-message">
+                      포트폴리오 정보를 불러오지 못했습니다.
                     </div>
-                  </div>
+                  )}
+
+                  {!portfolioLoading && !portfolioError && portfolioOverview && (
+                    <div className="investment-preview">
+                      <div className="investment-total">
+                        <span>총자산</span>
+                        <strong>{formatMoney(portfolioOverview.totalAssetValue)}</strong>
+                        <small
+                          className={
+                            portfolioOverview.totalProfitAmount > 0
+                              ? 'investment-profit-rise'
+                              : portfolioOverview.totalProfitAmount < 0
+                                ? 'investment-profit-fall'
+                                : ''
+                          }
+                        >
+                          총 수익 {formatMoney(portfolioOverview.totalProfitAmount)}
+                        </small>
+                      </div>
+
+                      <div className="investment-holdings-heading">
+                        <strong>보유 종목 TOP 3</strong>
+                        <span>{portfolioOverview.totalHoldingCount.toLocaleString('ko-KR')}개</span>
+                      </div>
+
+                      {portfolioOverview.topHoldings.length > 0 ? (
+                        <ul className="investment-holdings">
+                          {portfolioOverview.topHoldings.map((holding) => (
+                            <li key={`${holding.roomParticipantId}-${holding.stockCode}`}>
+                              <a
+                                href={`/stocks/${holding.stockCode}?roomParticipantId=${holding.roomParticipantId}`}
+                              >
+                                <span className="investment-holding-name">
+                                  <strong>{holding.stockName}</strong>
+                                  <small>{holding.roomName}</small>
+                                </span>
+                                <span className="investment-holding-value">
+                                  <strong>{formatMoney(holding.evaluationAmount)}</strong>
+                                  <small
+                                    className={
+                                      holding.profitAmount > 0
+                                        ? 'investment-profit-rise'
+                                        : holding.profitAmount < 0
+                                          ? 'investment-profit-fall'
+                                          : ''
+                                    }
+                                  >
+                                    {formatPercent(holding.profitRate)}
+                                  </small>
+                                </span>
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="investment-empty">아직 보유한 종목이 없습니다.</div>
+                      )}
+                    </div>
+                  )}
 
                   <a href="/portfolio" className="btn btn-primary btn-block investment-button">
                     포트폴리오 보기
