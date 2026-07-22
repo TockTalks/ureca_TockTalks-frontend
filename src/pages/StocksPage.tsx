@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Navbar from '../components/Navbar'
 import { api, ApiError } from '../lib/apiClient'
-import type { PriceSnapshot, StockInfo } from '../lib/types'
+import type { FavoriteStock, PriceSnapshot, StockInfo } from '../lib/types'
 import { useAuth } from '../lib/useAuth'
 import './StocksPage.css'
 
@@ -15,6 +15,8 @@ function StocksPage() {
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [prices, setPrices] = useState<Record<string, number | null>>({})
+  const [favoriteStocks, setFavoriteStocks] = useState<FavoriteStock[] | null>(null)
+  const [favoritePrices, setFavoritePrices] = useState<Record<string, number | null>>({})
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const requestedPriceCodesRef = useRef(new Set<string>())
   const mountedRef = useRef(true)
@@ -36,6 +38,40 @@ function StocksPage() {
       })
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (!authChecked) return
+    if (!me) {
+      setFavoriteStocks([])
+      return
+    }
+
+    api
+      .get<FavoriteStock[]>('/api/member/favorite-stocks')
+      .then(setFavoriteStocks)
+      .catch(() => setFavoriteStocks([]))
+  }, [authChecked, me])
+
+  useEffect(() => {
+    if (!favoriteStocks || favoriteStocks.length === 0) return
+
+    favoriteStocks.forEach((stock) => {
+      if (favoritePrices[stock.stockCode] !== undefined) return
+
+      api
+        .get<PriceSnapshot>(`/api/price/${stock.stockCode}`)
+        .then((snapshot) => {
+          const price = Number(snapshot.stck_prpr)
+          setFavoritePrices((current) => ({
+            ...current,
+            [stock.stockCode]: Number.isFinite(price) ? price : null,
+          }))
+        })
+        .catch(() => {
+          setFavoritePrices((current) => ({ ...current, [stock.stockCode]: null }))
+        })
+    })
+  }, [favoriteStocks])
 
   const filteredStocks = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase('ko-KR')
@@ -133,6 +169,40 @@ function StocksPage() {
             <span className="stocks-count">총 {filteredStocks.length.toLocaleString('ko-KR')}개</span>
           )}
         </div>
+
+        {authChecked && me && (
+          <section className="card favorite-stocks-card" aria-label="관심종목">
+            <div className="favorite-stocks-header">
+              <span className="section-eyebrow">MY FAVORITES</span>
+              <h2>관심종목</h2>
+            </div>
+
+            {favoriteStocks === null ? (
+              <p className="favorite-stocks-empty">관심종목을 불러오는 중입니다.</p>
+            ) : favoriteStocks.length === 0 ? (
+              <p className="favorite-stocks-empty">
+                등록된 관심종목이 없습니다. 종목 상세페이지에서 별표를 눌러 등록해 보세요.
+              </p>
+            ) : (
+              <ul className="favorite-stocks-list">
+                {favoriteStocks.map((stock) => (
+                  <li key={stock.stockCode}>
+                    <a href={`/stocks/${stock.stockCode}`} className="favorite-stock-chip">
+                      <span>{stock.stockName}</span>
+                      <span className="favorite-stock-price">
+                        {favoritePrices[stock.stockCode] === undefined
+                          ? '조회 중…'
+                          : favoritePrices[stock.stockCode] === null
+                            ? '-'
+                            : `${favoritePrices[stock.stockCode]!.toLocaleString('ko-KR')}원`}
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
 
         <div className="stocks-search-wrap">
           <label htmlFor="stock-search" className="stocks-search-label">
