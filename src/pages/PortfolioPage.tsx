@@ -58,6 +58,31 @@ function PortfolioPage() {
   const totalProfitAmount = totalAssetValue - totalSeedMoney
   const totalProfitRate = totalSeedMoney > 0 ? (totalProfitAmount / totalSeedMoney) * 100 : 0
 
+  // ===== 추가: 로비/진행중인 방 vs 종료된 방으로 목록 분리 =====
+  const activePortfolios = portfolios.filter((p) => p.roomStatus !== 'closed')
+  const endedPortfolios = portfolios.filter((p) => p.roomStatus === 'closed')
+
+  const renderPortfolioCard = (p: PortfolioSummary) => (
+    <a key={p.roomParticipantId} href={`/portfolio/${p.roomParticipantId}`} className="card room-card">
+      <div className="room-card-header">
+        <h3>{p.roomName}</h3>
+        <span className={statusBadgeClass(p.roomStatus)}>{statusLabel(p.roomStatus)}</span>
+      </div>
+      <div className="room-card-meta">
+        <span>평가자산 {formatMoney(p.totalAssetValue)}</span>
+        <span>보유 종목 {p.holdingCount}개</span>
+      </div>
+      <div className="portfolio-card-profit">
+        <ProfitRateGauge rate={p.profitRate} size={48} />
+        <span className={profitBadgeClass(p.profitAmount)}>{formatPercent(p.profitRate)}</span>
+        <span className={`profit-amount ${p.profitAmount > 0 ? 'text-rise' : p.profitAmount < 0 ? 'text-fall' : ''}`}>
+          {formatMoney(p.profitAmount)}
+        </span>
+      </div>
+    </a>
+  )
+  // ===== 추가 끝 =====
+
   return (
     <>
       <Navbar me={me} authChecked={authChecked} onLogout={logout} />
@@ -95,31 +120,25 @@ function PortfolioPage() {
           </p>
         )}
 
-        {portfolios.length > 0 && (
-          <div className="room-list">
-            {portfolios.map((p) => (
-              <a key={p.roomParticipantId} href={`/portfolio/${p.roomParticipantId}`} className="card room-card">
-                <div className="room-card-header">
-                  <h3>{p.roomName}</h3>
-                  <span className={statusBadgeClass(p.roomStatus)}>{statusLabel(p.roomStatus)}</span>
-                </div>
-                <div className="room-card-meta">
-                  <span>평가자산 {formatMoney(p.totalAssetValue)}</span>
-                  <span>보유 종목 {p.holdingCount}개</span>
-                </div>
-                <div className="portfolio-card-profit">
-                  {/* ===== 추가: 방별 수익률 게이지 ===== */}
-                  <ProfitRateGauge rate={p.profitRate} size={48} />
-                  {/* ===== 추가 끝 ===== */}
-                  <span className={profitBadgeClass(p.profitAmount)}>{formatPercent(p.profitRate)}</span>
-                  <span className={`profit-amount ${p.profitAmount > 0 ? 'text-rise' : p.profitAmount < 0 ? 'text-fall' : ''}`}>
-                    {formatMoney(p.profitAmount)}
-                  </span>
-                </div>
-              </a>
-            ))}
-          </div>
+        {/* ===== 변경: 단일 목록 → 진행중/종료 두 섹션으로 분리 ===== */}
+        {activePortfolios.length > 0 && (
+          <section className="rooms-section">
+            <div className="rooms-section-header">
+              <h2>로비 &amp; 진행중인 포트폴리오</h2>
+            </div>
+            <div className="room-list">{activePortfolios.map(renderPortfolioCard)}</div>
+          </section>
         )}
+
+        {endedPortfolios.length > 0 && (
+          <section className="rooms-section">
+            <div className="rooms-section-header">
+              <h2>종료된 포트폴리오</h2>
+            </div>
+            <div className="room-list">{endedPortfolios.map(renderPortfolioCard)}</div>
+          </section>
+        )}
+        {/* ===== 변경 끝 ===== */}
       </main>
     </>
   )
