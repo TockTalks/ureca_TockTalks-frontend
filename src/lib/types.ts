@@ -133,6 +133,7 @@ export type CommunityComment = {
   content: string
   likeCount: number
   likedByMe: boolean
+  edited: boolean
   createdAt: string
   updatedAt: string
 }
