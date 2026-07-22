@@ -146,6 +146,37 @@ function CommunityDetailPage({ postId }: { postId: number }) {
     }
   }
 
+  const handleReportPost = async () => {
+    if (!post) return
+    if (!window.confirm('이 게시글을 신고하시겠습니까?')) return
+    try {
+      await api.post('/api/reports', {
+        targetType: 'POST',
+        targetId: post.id,
+        targetMemberId: post.memberId,
+        reason: '부적절한 게시글입니다.',
+      })
+      window.alert('신고가 접수되었습니다.')
+    } catch (err) {
+      setErrorMessage(err instanceof ApiError ? err.message : '신고에 실패했습니다.')
+    }
+  }
+
+  const handleReportComment = async (comment: CommunityComment) => {
+    if (!window.confirm('이 댓글을 신고하시겠습니까?')) return
+    try {
+      await api.post('/api/reports', {
+        targetType: 'COMMENT',
+        targetId: comment.id,
+        targetMemberId: comment.memberId,
+        reason: '부적절한 댓글입니다.',
+      })
+      window.alert('신고가 접수되었습니다.')
+    } catch (err) {
+      setErrorMessage(err instanceof ApiError ? err.message : '신고에 실패했습니다.')
+    }
+  }
+
   const handleToggleCommentLike = async (comment: CommunityComment) => {
     try {
       const likedByMe = await api.post<boolean>(`/api/posts/${postId}/comments/${comment.id}/like`)
@@ -232,7 +263,7 @@ function CommunityDetailPage({ postId }: { postId: number }) {
                   >
                     ♥ 좋아요 {post.likeCount}
                   </button>
-                  {me?.id === post.memberId && (
+                  {me?.id === post.memberId ? (
                     <>
                       <button type="button" className="btn btn-text" onClick={handleStartEditPost}>
                         수정
@@ -241,6 +272,16 @@ function CommunityDetailPage({ postId }: { postId: number }) {
                         삭제
                       </button>
                     </>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-report"
+                      title="신고"
+                      aria-label="게시글 신고"
+                      onClick={handleReportPost}
+                    >
+                      🚨
+                    </button>
                   )}
                 </div>
               </>
@@ -277,6 +318,7 @@ function CommunityDetailPage({ postId }: { postId: number }) {
                     <div className="comment-item-header">
                       <span className="post-card-author">
                         {me?.id === comment.memberId ? '나' : `회원 ${comment.memberId}`}
+                        {comment.edited && <span className="comment-edited-badge"> (수정됨)</span>}
                       </span>
                       <span className="post-card-date">{formatDate(comment.createdAt)}</span>
                     </div>
@@ -314,7 +356,7 @@ function CommunityDetailPage({ postId }: { postId: number }) {
                           >
                             ♥ {comment.likeCount}
                           </button>
-                          {me?.id === comment.memberId && (
+                          {me?.id === comment.memberId ? (
                             <>
                               <button
                                 type="button"
@@ -331,6 +373,16 @@ function CommunityDetailPage({ postId }: { postId: number }) {
                                 삭제
                               </button>
                             </>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-report btn-report-sm"
+                              title="신고"
+                              aria-label="댓글 신고"
+                              onClick={() => handleReportComment(comment)}
+                            >
+                              🚨
+                            </button>
                           )}
                         </div>
                       </>
