@@ -79,19 +79,46 @@ function StocksPage() {
     [favoriteStocks],
   )
 
+  const addFavorite = async (stock: StockInfo) => {
+    await api.post('/api/member/favorite-stocks', { stockCode: stock.stockCode })
+    setFavoriteStocks((current) => [
+      ...(current ?? []),
+      { id: -1, stockCode: stock.stockCode, stockName: stock.stockName },
+    ])
+  }
+
+  const removeFavorite = async (stockCode: string) => {
+    await api.del(`/api/member/favorite-stocks/${stockCode}`)
+    setFavoriteStocks((current) => (current ?? []).filter((item) => item.stockCode !== stockCode))
+  }
+
   const handleToggleFavorite = async (stock: StockInfo) => {
-    if (!me || favoriteStockCodes.has(stock.stockCode) || favoriteSubmittingCode) return
+    if (!me || favoriteSubmittingCode) return
 
     setFavoriteSubmittingCode(stock.stockCode)
 
     try {
-      await api.post('/api/member/favorite-stocks', { stockCode: stock.stockCode })
-      setFavoriteStocks((current) => [
-        ...(current ?? []),
-        { id: -1, stockCode: stock.stockCode, stockName: stock.stockName },
-      ])
+      if (favoriteStockCodes.has(stock.stockCode)) {
+        await removeFavorite(stock.stockCode)
+      } else {
+        await addFavorite(stock)
+      }
     } catch {
       // 실패 시 조용히 무시, 별표는 그대로 다시 눌러볼 수 있음
+    } finally {
+      setFavoriteSubmittingCode(null)
+    }
+  }
+
+  const handleRemoveFavoriteChip = async (stockCode: string) => {
+    if (favoriteSubmittingCode) return
+
+    setFavoriteSubmittingCode(stockCode)
+
+    try {
+      await removeFavorite(stockCode)
+    } catch {
+      // 실패 시 조용히 무시
     } finally {
       setFavoriteSubmittingCode(null)
     }
@@ -210,8 +237,8 @@ function StocksPage() {
             ) : (
               <ul className="favorite-stocks-list">
                 {favoriteStocks.map((stock) => (
-                  <li key={stock.stockCode}>
-                    <a href={`/stocks/${stock.stockCode}`} className="favorite-stock-chip">
+                  <li key={stock.stockCode} className="favorite-stock-chip">
+                    <a href={`/stocks/${stock.stockCode}`} className="favorite-stock-chip-link">
                       <span>{stock.stockName}</span>
                       <span className="favorite-stock-price">
                         {favoritePrices[stock.stockCode] === undefined
@@ -221,6 +248,15 @@ function StocksPage() {
                             : `${favoritePrices[stock.stockCode]!.toLocaleString('ko-KR')}원`}
                       </span>
                     </a>
+                    <button
+                      type="button"
+                      className="favorite-chip-remove"
+                      onClick={() => handleRemoveFavoriteChip(stock.stockCode)}
+                      disabled={favoriteSubmittingCode === stock.stockCode}
+                      aria-label={`${stock.stockName} 관심종목 해제`}
+                    >
+                      ×
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -279,9 +315,9 @@ function StocksPage() {
                           isFavorite ? 'favorite-star-active' : ''
                         }`}
                         onClick={() => handleToggleFavorite(stock)}
-                        disabled={isFavorite || favoriteSubmittingCode === stock.stockCode}
+                        disabled={favoriteSubmittingCode === stock.stockCode}
                         aria-label={
-                          isFavorite ? `${stock.stockName} 관심종목에 등록됨` : `${stock.stockName} 관심종목 등록`
+                          isFavorite ? `${stock.stockName} 관심종목 해제` : `${stock.stockName} 관심종목 등록`
                         }
                         aria-pressed={isFavorite}
                       >

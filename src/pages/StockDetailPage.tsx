@@ -96,15 +96,20 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
       .catch(() => {})
   }, [me, stockCode])
 
-  const handleAddFavorite = async () => {
+  const handleToggleFavorite = async () => {
     setFavoriteError(null)
     setFavoriteSubmitting(true)
 
     try {
-      await api.post('/api/member/favorite-stocks', { stockCode })
-      setIsFavorite(true)
+      if (isFavorite) {
+        await api.del(`/api/member/favorite-stocks/${stockCode}`)
+        setIsFavorite(false)
+      } else {
+        await api.post('/api/member/favorite-stocks', { stockCode })
+        setIsFavorite(true)
+      }
     } catch (error) {
-      setFavoriteError(error instanceof ApiError ? error.message : '관심종목 등록에 실패했습니다.')
+      setFavoriteError(error instanceof ApiError ? error.message : '관심종목 처리에 실패했습니다.')
     } finally {
       setFavoriteSubmitting(false)
     }
@@ -196,9 +201,9 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
                   <button
                     type="button"
                     className={`favorite-star-btn ${isFavorite ? 'favorite-star-active' : ''}`}
-                    onClick={handleAddFavorite}
-                    disabled={isFavorite || favoriteSubmitting}
-                    aria-label={isFavorite ? '관심종목에 등록됨' : '관심종목 등록'}
+                    onClick={handleToggleFavorite}
+                    disabled={favoriteSubmitting}
+                    aria-label={isFavorite ? '관심종목 해제' : '관심종목 등록'}
                     aria-pressed={isFavorite}
                   >
                     {isFavorite ? '★' : '☆'}
