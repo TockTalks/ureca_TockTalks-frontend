@@ -6,6 +6,7 @@ import { api, ApiError } from '../lib/apiClient'
 import { formatMoney, formatPercent } from '../lib/format'
 import { usePriceStream, type PricePoint } from '../lib/priceSocket'
 import type {
+  FavoriteStock,
   PortfolioSummary,
   Room,
   StockInfo,
@@ -42,6 +43,9 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
   const [orderType, setOrderType] = useState<TradeType>('BUY')
   const [quantity, setQuantity] = useState('')
   const [holding, setHolding] = useState<TradeHolding | null>(null)
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [favoriteSubmitting, setFavoriteSubmitting] = useState(false)
+  const [favoriteError, setFavoriteError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [execution, setExecution] = useState<TradeExecution | null>(null)
@@ -128,6 +132,39 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
 
   useEffect(loadHolding, [me, roomParticipantId, stockCode])
 
+  useEffect(() => {
+    if (!me) {
+      setIsFavorite(false)
+      return
+    }
+
+    api
+      .get<FavoriteStock[]>('/api/member/favorite-stocks')
+      .then((favorites) => {
+        setIsFavorite(favorites.some((favorite) => favorite.stockCode === stockCode))
+      })
+      .catch(() => {})
+  }, [me, stockCode])
+
+  const handleToggleFavorite = async () => {
+    setFavoriteError(null)
+    setFavoriteSubmitting(true)
+
+    try {
+      if (isFavorite) {
+        await api.del(`/api/member/favorite-stocks/${stockCode}`)
+        setIsFavorite(false)
+      } else {
+        await api.post('/api/member/favorite-stocks', { stockCode })
+        setIsFavorite(true)
+      }
+    } catch (error) {
+      setFavoriteError(error instanceof ApiError ? error.message : '관심종목 처리에 실패했습니다.')
+    } finally {
+      setFavoriteSubmitting(false)
+    }
+  }
+
   const { points, latestPrice, snapshot } = usePriceStream(stockCode)
 
   const changeAmount = snapshot ? Number(snapshot.prdy_vrss) : null
@@ -206,10 +243,27 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
         <div className="stock-detail-grid">
           <section className="card stock-chart-panel">
             <div className="stock-detail-heading">
-              <div>
-                <span className="section-eyebrow">실시간 시세</span>
-                <h1>{stockName}</h1>
+              <div className="stock-title-row">
+                <div>
+                  <span className="section-eyebrow">실시간 시세</span>
+                  <h1>{stockName}</h1>
+                </div>
+
+                {me && (
+                  <button
+                    type="button"
+                    className={`favorite-star-btn ${isFavorite ? 'favorite-star-active' : ''}`}
+                    onClick={handleToggleFavorite}
+                    disabled={favoriteSubmitting}
+                    aria-label={isFavorite ? '관심종목 해제' : '관심종목 등록'}
+                    aria-pressed={isFavorite}
+                  >
+                    {isFavorite ? '★' : '☆'}
+                  </button>
+                )}
               </div>
+
+              {favoriteError && <p className="alert-error stock-favorite-error">{favoriteError}</p>}
 
               {latestPrice !== null && (
                 <div className="stock-detail-price-wrap">

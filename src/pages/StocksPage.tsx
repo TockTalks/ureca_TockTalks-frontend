@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Navbar from '../components/Navbar'
 import { api, ApiError } from '../lib/apiClient'
-import type { PriceSnapshot, StockInfo } from '../lib/types'
+import type { FavoriteStock, PriceSnapshot, StockInfo } from '../lib/types'
 import { useAuth } from '../lib/useAuth'
 import './StocksPage.css'
 
@@ -32,7 +32,11 @@ function StocksPage() {
     total: 0,
   })
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  const [favoriteStocks, setFavoriteStocks] = useState<FavoriteStock[] | null>(null)
+  const [favoritePrices, setFavoritePrices] = useState<Record<string, number | null>>({})
+  const [favoriteSubmittingCode, setFavoriteSubmittingCode] = useState<string | null>(null)
   const requestedPriceCodesRef = useRef(new Set<string>())
+  const requestedFavoritePriceCodesRef = useRef(new Set<string>())
   const allPricesLoadedRef = useRef(false)
   const mountedRef = useRef(true)
 
@@ -55,6 +59,94 @@ function StocksPage() {
       })
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (!authChecked) return
+    if (!me) {
+      setFavoriteStocks([])
+      return
+    }
+
+    api
+      .get<FavoriteStock[]>('/api/member/favorite-stocks')
+      .then(setFavoriteStocks)
+      .catch(() => setFavoriteStocks([]))
+  }, [authChecked, me])
+
+  useEffect(() => {
+    if (!favoriteStocks || favoriteStocks.length === 0) return
+
+    const pendingStocks = favoriteStocks.filter(
+      (stock) => !requestedFavoritePriceCodesRef.current.has(stock.stockCode),
+    )
+
+    pendingStocks.forEach((stock) => {
+      requestedFavoritePriceCodesRef.current.add(stock.stockCode)
+
+      api
+        .get<PriceSnapshot>(`/api/price/${stock.stockCode}`)
+        .then((snapshot) => {
+          const price = Number(snapshot.stck_prpr)
+          setFavoritePrices((current) => ({
+            ...current,
+            [stock.stockCode]: Number.isFinite(price) ? price : null,
+          }))
+        })
+        .catch(() => {
+          setFavoritePrices((current) => ({ ...current, [stock.stockCode]: null }))
+        })
+    })
+  }, [favoriteStocks])
+
+  const favoriteStockCodes = useMemo(
+    () => new Set((favoriteStocks ?? []).map((stock) => stock.stockCode)),
+    [favoriteStocks],
+  )
+
+  const addFavorite = async (stock: StockInfo) => {
+    await api.post('/api/member/favorite-stocks', { stockCode: stock.stockCode })
+    setFavoriteStocks((current) => [
+      ...(current ?? []),
+      { id: -1, stockCode: stock.stockCode, stockName: stock.stockName },
+    ])
+  }
+
+  const removeFavorite = async (stockCode: string) => {
+    await api.del(`/api/member/favorite-stocks/${stockCode}`)
+    setFavoriteStocks((current) => (current ?? []).filter((item) => item.stockCode !== stockCode))
+  }
+
+  const handleToggleFavorite = async (stock: StockInfo) => {
+    if (!me || favoriteSubmittingCode) return
+
+    setFavoriteSubmittingCode(stock.stockCode)
+
+    try {
+      if (favoriteStockCodes.has(stock.stockCode)) {
+        await removeFavorite(stock.stockCode)
+      } else {
+        await addFavorite(stock)
+      }
+    } catch {
+      // 실패 시 조용히 무시, 별표는 그대로 다시 눌러볼 수 있음
+    } finally {
+      setFavoriteSubmittingCode(null)
+    }
+  }
+
+  const handleRemoveFavoriteChip = async (stockCode: string) => {
+    if (favoriteSubmittingCode) return
+
+    setFavoriteSubmittingCode(stockCode)
+
+    try {
+      await removeFavorite(stockCode)
+    } catch {
+      // 실패 시 조용히 무시
+    } finally {
+      setFavoriteSubmittingCode(null)
+    }
+  }
 
   const filteredStocks = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase('ko-KR')
@@ -228,6 +320,49 @@ function StocksPage() {
           )}
         </div>
 
+        {authChecked && me && (
+          <section className="card favorite-stocks-card" aria-label="관심종목">
+            <div className="favorite-stocks-header">
+              <span className="section-eyebrow">MY FAVORITES</span>
+              <h2>관심종목</h2>
+            </div>
+
+            {favoriteStocks === null ? (
+              <p className="favorite-stocks-empty">관심종목을 불러오는 중입니다.</p>
+            ) : favoriteStocks.length === 0 ? (
+              <p className="favorite-stocks-empty">
+                등록된 관심종목이 없습니다. 종목 상세페이지에서 별표를 눌러 등록해 보세요.
+              </p>
+            ) : (
+              <ul className="favorite-stocks-list">
+                {favoriteStocks.map((stock) => (
+                  <li key={stock.stockCode} className="favorite-stock-chip">
+                    <a href={`/stocks/${stock.stockCode}`} className="favorite-stock-chip-link">
+                      <span>{stock.stockName}</span>
+                      <span className="favorite-stock-price">
+                        {favoritePrices[stock.stockCode] === undefined
+                          ? '조회 중…'
+                          : favoritePrices[stock.stockCode] === null
+                            ? '-'
+                            : `${favoritePrices[stock.stockCode]!.toLocaleString('ko-KR')}원`}
+                      </span>
+                    </a>
+                    <button
+                      type="button"
+                      className="favorite-chip-remove"
+                      onClick={() => handleRemoveFavoriteChip(stock.stockCode)}
+                      disabled={favoriteSubmittingCode === stock.stockCode}
+                      aria-label={`${stock.stockName} 관심종목 해제`}
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
         <div className="stocks-search-wrap">
           <label htmlFor="stock-search" className="stocks-search-label">
             종목 검색
@@ -296,9 +431,27 @@ function StocksPage() {
             <ul className="stocks-list">
               {visibleStocks.map((stock) => {
                 const currentPrice = prices[stock.stockCode]
+                const isFavorite = favoriteStockCodes.has(stock.stockCode)
 
                 return (
-                  <li key={stock.stockCode}>
+                  <li key={stock.stockCode} className="stock-list-row">
+                    {me && (
+                      <button
+                        type="button"
+                        className={`favorite-star-btn favorite-star-btn-list ${
+                          isFavorite ? 'favorite-star-active' : ''
+                        }`}
+                        onClick={() => handleToggleFavorite(stock)}
+                        disabled={favoriteSubmittingCode === stock.stockCode}
+                        aria-label={
+                          isFavorite ? `${stock.stockName} 관심종목 해제` : `${stock.stockName} 관심종목 등록`
+                        }
+                        aria-pressed={isFavorite}
+                      >
+                        {isFavorite ? '★' : '☆'}
+                      </button>
+                    )}
+
                     <a
                       href={`/stocks/${stock.stockCode}`}
                       className="stock-list-item"
