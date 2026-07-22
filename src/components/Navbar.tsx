@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react' // ===== 추가 =====
 import type { Me } from '../lib/useAuth'
 import './Navbar.css'
 
@@ -16,6 +17,24 @@ const navigationItems = [
 ]
 
 function Navbar({ me, authChecked, onLogout }: NavbarProps) {
+  // ===== 추가: 관리자 기능 토글 드롭다운 =====
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false)
+  const adminMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!adminMenuOpen) return
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (adminMenuRef.current && !adminMenuRef.current.contains(e.target as Node)) {
+        setAdminMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [adminMenuOpen])
+  // ===== 추가 끝 =====
+
   return (
     <header className="navbar">
       <a href="/" className="navbar-brand">
@@ -35,6 +54,31 @@ function Navbar({ me, authChecked, onLogout }: NavbarProps) {
 
         {authChecked && me && (
           <>
+            {/* ===== 추가: 관리자 전용 - 신고/통계 이동 드롭다운 ===== */}
+            {me.role === 'admin' && (
+              <div className="navbar-admin-menu" ref={adminMenuRef}>
+                <button
+                  type="button"
+                  className="navbar-admin-toggle"
+                  onClick={() => setAdminMenuOpen((open) => !open)}
+                  aria-expanded={adminMenuOpen}
+                >
+                  관리자 ▾
+                </button>
+                {adminMenuOpen && (
+                  <div className="navbar-admin-dropdown">
+                    <a href="/admin/reports" className="navbar-admin-dropdown-item">
+                      신고
+                    </a>
+                    <a href="/admin/stats" className="navbar-admin-dropdown-item">
+                      통계
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* ===== 추가 끝 ===== */}
+
             <a href="/profile" className="navbar-nickname">
               {me.nickname}님
             </a>
