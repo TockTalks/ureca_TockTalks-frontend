@@ -8,6 +8,8 @@ import './StocksPage.css'
 const PAGE_SIZE = 12
 const PRICE_BATCH_SIZE = 4
 const PRICE_BATCH_DELAY_MS = 100
+const PRICE_RETRY_DELAY_MS = 500
+const PRICE_MAX_ATTEMPTS = 3
 
 type QuoteLoadProgress = {
   completed: number
@@ -212,6 +214,34 @@ function StocksPage() {
     return sortedStocks.slice(start, start + PAGE_SIZE)
   }, [page, sortedStocks])
 
+  const fetchQuote = useCallback(async (stock: StockInfo, attempt = 0): Promise<void> => {
+    try {
+      const snapshot = await api.get<PriceSnapshot>(`/api/price/${stock.stockCode}`)
+      const currentPrice = Number(snapshot.stck_prpr)
+      const changeRate = Number(snapshot.prdy_ctrt)
+
+      if (mountedRef.current) {
+        setQuotes((current) => ({
+          ...current,
+          [stock.stockCode]:
+            Number.isFinite(currentPrice) && Number.isFinite(changeRate)
+              ? { currentPrice, changeRate }
+              : null,
+        }))
+      }
+    } catch {
+      if (attempt < PRICE_MAX_ATTEMPTS - 1) {
+        await wait(PRICE_RETRY_DELAY_MS)
+        await fetchQuote(stock, attempt + 1)
+        return
+      }
+
+      if (mountedRef.current) {
+        setQuotes((current) => ({ ...current, [stock.stockCode]: null }))
+      }
+    }
+  }, [])
+
   const loadQuotes = useCallback(
     async (
       targetStocks: StockInfo[],
@@ -228,29 +258,7 @@ function StocksPage() {
       for (let index = 0; index < pendingStocks.length; index += PRICE_BATCH_SIZE) {
         const batch = pendingStocks.slice(index, index + PRICE_BATCH_SIZE)
 
-        await Promise.all(
-          batch.map(async (stock) => {
-            try {
-              const snapshot = await api.get<PriceSnapshot>(`/api/price/${stock.stockCode}`)
-              const currentPrice = Number(snapshot.stck_prpr)
-              const changeRate = Number(snapshot.prdy_ctrt)
-
-              if (mountedRef.current) {
-                setQuotes((current) => ({
-                  ...current,
-                  [stock.stockCode]:
-                    Number.isFinite(currentPrice) && Number.isFinite(changeRate)
-                      ? { currentPrice, changeRate }
-                      : null,
-                }))
-              }
-            } catch {
-              if (mountedRef.current) {
-                setQuotes((current) => ({ ...current, [stock.stockCode]: null }))
-              }
-            }
-          }),
-        )
+        await Promise.all(batch.map((stock) => fetchQuote(stock)))
 
         completed += batch.length
         onProgress?.({ completed, total: targetStocks.length })
@@ -260,7 +268,7 @@ function StocksPage() {
         }
       }
     },
-    [],
+    [fetchQuote],
   )
 
   const toggleChangeRateSort = async () => {
