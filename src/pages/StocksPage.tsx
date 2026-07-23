@@ -10,6 +10,7 @@ const PRICE_BATCH_SIZE = 4
 const PRICE_BATCH_DELAY_MS = 100
 const PRICE_RETRY_DELAY_MS = 500
 const PRICE_MAX_ATTEMPTS = 3
+const POLL_INTERVAL_MS = 30000
 
 const getInitialPage = () => {
   const rawPage = new URLSearchParams(window.location.search).get('page')
@@ -293,6 +294,20 @@ function StocksPage() {
     [fetchQuote],
   )
 
+  const refreshQuotes = useCallback(
+    async (targetStocks: StockInfo[]) => {
+      for (let index = 0; index < targetStocks.length; index += PRICE_BATCH_SIZE) {
+        const batch = targetStocks.slice(index, index + PRICE_BATCH_SIZE)
+        await Promise.all(batch.map((stock) => fetchQuote(stock)))
+
+        if (index + PRICE_BATCH_SIZE < targetStocks.length) {
+          await wait(PRICE_BATCH_DELAY_MS)
+        }
+      }
+    },
+    [fetchQuote],
+  )
+
   const toggleChangeRateSort = async () => {
     if (isLoadingAllQuotes) return
 
@@ -326,9 +341,18 @@ function StocksPage() {
     setPage(1)
   }
 
+    useEffect(() => {
+      void loadQuotes(pagedStocks)
+    }, [pagedStocks, loadQuotes])
+
   useEffect(() => {
-    void loadQuotes(pagedStocks)
-  }, [pagedStocks, loadQuotes])
+    const intervalId = window.setInterval(() => {
+      if (document.hidden) return
+      void refreshQuotes(pagedStocks)
+    }, POLL_INTERVAL_MS)
+
+    return () => window.clearInterval(intervalId)
+  }, [pagedStocks, refreshQuotes])
 
   return (
     <>
