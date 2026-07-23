@@ -41,7 +41,7 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
   const { me, authChecked, logout } = useAuth()
   const [stockName, setStockName] = useState('종목 정보')
   const [orderType, setOrderType] = useState<TradeType>('BUY')
-  const [quantity, setQuantity] = useState('')
+  const [quantity, setQuantity] = useState('1')
   const [holding, setHolding] = useState<TradeHolding | null>(null)
   const [availableBalance, setAvailableBalance] = useState<number | null>(null)
   const [isFavorite, setIsFavorite] = useState(false)
@@ -192,10 +192,42 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
     availableBalance !== null && latestPrice !== null && latestPrice > 0
       ? Math.floor(availableBalance / latestPrice)
       : null
+  const maxOrderQuantity =
+    orderType === 'BUY' ? maxBuyQuantity : (holding?.quantity ?? 0)
+
+  useEffect(() => {
+    if (maxOrderQuantity === null || maxOrderQuantity < 1) return
+
+    setQuantity((current) => {
+      const currentQuantity = Number(current)
+
+      return Number.isSafeInteger(currentQuantity) && currentQuantity > maxOrderQuantity
+        ? String(maxOrderQuantity)
+        : current
+    })
+  }, [maxOrderQuantity])
+
+  const handleQuantityChange = (nextValue: string) => {
+    if (nextValue === '') {
+      setQuantity('')
+      return
+    }
+
+    const nextQuantity = Number(nextValue)
+    if (!Number.isSafeInteger(nextQuantity)) return
+
+    const quantityAtLeastOne = Math.max(1, nextQuantity)
+    const clampedQuantity =
+      maxOrderQuantity !== null && maxOrderQuantity > 0
+        ? Math.min(quantityAtLeastOne, maxOrderQuantity)
+        : quantityAtLeastOne
+
+    setQuantity(String(clampedQuantity))
+  }
 
   const handleOrderTypeChange = (nextType: TradeType) => {
     setOrderType(nextType)
-    setQuantity('')
+    setQuantity('1')
     setErrorMessage(null)
     setExecution(null)
   }
@@ -217,6 +249,11 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
       return
     }
 
+    if (quantity.trim() === '') {
+      setErrorMessage(`${orderType === 'BUY' ? '매수' : '매도'} 수량을 정해주세요.`)
+      return
+    }
+
     if (!isValidQuantity) {
       setErrorMessage('수량은 1 이상의 정수로 입력해 주세요.')
       return
@@ -227,9 +264,16 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
       return
     }
 
-    if (orderType === 'SELL' && (!holding || parsedQuantity > holding.quantity)) {
-      setErrorMessage('보유 수량 안에서 매도 수량을 입력해 주세요.')
-      return
+    if (orderType === 'SELL') {
+      if (!holding || holding.quantity <= 0) {
+        setErrorMessage('해당 주식을 보유하고 있지 않습니다.')
+        return
+      }
+
+      if (parsedQuantity > holding.quantity) {
+        setErrorMessage('보유 수량 안에서 매도 수량을 입력해 주세요.')
+        return
+      }
     }
 
     setSubmitting(true)
@@ -245,7 +289,7 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
 
       setExecution(result)
       setAvailableBalance(result.balance)
-      setQuantity('')
+      setQuantity('1')
       loadHolding()
     } catch (error) {
       setErrorMessage(error instanceof ApiError ? error.message : '주문 처리에 실패했습니다.')
@@ -421,16 +465,13 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
                     type="number"
                     className="input order-quantity-input"
                     min="1"
-                    max={
-                      orderType === 'BUY'
-                        ? (maxBuyQuantity ?? undefined)
-                        : (holding?.quantity ?? undefined)
-                    }
+                    max={maxOrderQuantity ?? undefined}
                     step="1"
                     inputMode="numeric"
                     placeholder="수량 입력"
                     value={quantity}
-                    onChange={(event) => setQuantity(event.target.value)}
+                    onChange={(event) => handleQuantityChange(event.target.value)}
+                    disabled={maxOrderQuantity === 0}
                   />
                   <span>주</span>
                 </div>
