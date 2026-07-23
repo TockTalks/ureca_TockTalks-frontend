@@ -1,5 +1,6 @@
 export function formatMoney(amount: number): string {
-  return `${amount.toLocaleString('ko-KR')}원`
+  // ===== 변경: 평균매입가 등 소수점 있는 금액도 정수로 반올림해서 표시 (원 단위엔 소수점 불필요) =====
+  return `${amount.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}원`
 }
 
 export function formatDate(iso: string | null): string {
