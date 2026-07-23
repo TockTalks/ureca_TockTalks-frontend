@@ -58,6 +58,47 @@ export function formatShortDate(iso: string): string {
   return new Date(iso).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
 }
 
+export function targetTypeLabel(type: string): string {
+  switch (type) {
+    case 'POST':
+      return '게시글 신고'
+    case 'COMMENT':
+      return '댓글 신고'
+    case 'ROOM':
+      return '방 신고'
+    default:
+      return type
+  }
+}
+
+export function reportStatusLabel(status: string): string {
+  switch (status) {
+    case 'pending':
+      return '대기중'
+    case 'rejected':
+      return '반려'
+    case 'deleted':
+      return '삭제'
+    default:
+      return status
+  }
+}
+
+export function reportStatusBadgeClass(status: string): string {
+  switch (status) {
+    case 'rejected':
+      return 'badge-default'
+    case 'deleted':
+      return 'badge-danger'
+    default:
+      return 'badge-info'
+  }
+}
+
+export function formatReportDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
+}
+
 // 목록에서는 내용 첫 줄을 제목처럼 보여주고, 나머지는 미리보기로 노출한다.
 export function splitPostTitle(content: string): { title: string; body: string } {
   const trimmed = content.trim()
