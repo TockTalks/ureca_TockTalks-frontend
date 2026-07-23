@@ -4,15 +4,9 @@ import Navbar from '../components/Navbar'
 import { api } from '../lib/apiClient'
 import { formatMoney, formatPercent } from '../lib/format'
 import { usePriceStream, type PricePoint } from '../lib/priceSocket'
-import type {
-  FavoriteStock,
-  PortfolioDetail,
-  PortfolioHolding,
-  PortfolioSummary,
-  Room,
-  RoomRanking,
-} from '../lib/types'
+import type { FavoriteStock, PortfolioDetail, PortfolioHolding, PortfolioSummary } from '../lib/types'
 import { useAuth } from '../lib/useAuth'
+import { useDefaultRoomRanking } from '../lib/useRanking'
 import './HomePage.css'
 
 type FeaturedStock = {
@@ -88,8 +82,7 @@ function HomePage() {
   const [portfolioOverview, setPortfolioOverview] = useState<PortfolioOverview | null>(null)
   const [portfolioLoading, setPortfolioLoading] = useState(false)
   const [portfolioError, setPortfolioError] = useState(false)
-  const [ranking, setRanking] = useState<RoomRanking[]>([])
-  const [rankingError, setRankingError] = useState(false)
+  const { ranking, loadError: rankingError } = useDefaultRoomRanking()
 
   useEffect(() => {
     if (!authChecked || !me) return
@@ -203,14 +196,6 @@ function HomePage() {
       cancelled = true
     }
   }, [authChecked, me])
-
-  useEffect(() => {
-    api
-      .get<Room>('/api/rooms/default')
-      .then((room) => api.get<RoomRanking[]>(`/api/rooms/${room.id}/ranking`))
-      .then((list) => setRanking(list))
-      .catch(() => setRankingError(true))
-  }, [])
 
   const { points, latestPrice, snapshot } = usePriceStream(stockCode)
 
