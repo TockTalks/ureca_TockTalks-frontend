@@ -3,9 +3,10 @@ import type { FormEvent } from 'react'
 import Navbar from '../components/Navbar'
 import { api, ApiError } from '../lib/apiClient'
 import { useAuth } from '../lib/useAuth'
-import type { Room } from '../lib/types'
-import { formatDate, formatMoney, statusBadgeClass, statusLabel } from '../lib/format'
+import type { FinalRanking, Room } from '../lib/types'
+import { formatDate, formatMoney, formatPercent, statusBadgeClass, statusLabel } from '../lib/format'
 import './RoomPages.css'
+import './RankingPage.css'
 
 function RoomDetailPage({ roomId }: { roomId: number }) {
   const { me, authChecked, logout } = useAuth()
@@ -15,11 +16,20 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [finalRanking, setFinalRanking] = useState<FinalRanking[]>([])
 
   const load = () => {
     api
       .get<Room>(`/api/rooms/${roomId}`)
-      .then(setRoom)
+      .then((data) => {
+        setRoom(data)
+        if (data.status !== 'ongoing') {
+          api
+            .get<FinalRanking[]>(`/api/rooms/${roomId}/rankings/final`)
+            .then(setFinalRanking)
+            .catch(() => setFinalRanking([]))
+        }
+      })
       .catch((err) => setLoadError(err instanceof ApiError ? err.message : '방 정보를 불러오지 못했습니다.'))
 
     if (me) {
@@ -138,7 +148,28 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
                 <a href="/login">로그인</a> 후 참가할 수 있습니다.
               </p>
             ) : room.status !== 'ongoing' ? (
-              <p className="rooms-empty">종료된 방입니다.</p>
+              finalRanking.length === 0 ? (
+                <p className="rooms-empty">종료된 방입니다.</p>
+              ) : (
+                <ol className="card ranking-page-list">
+                  {finalRanking.map((entry) => (
+                    <li
+                      key={entry.memberId}
+                      className={`ranking-row ranking-page-item ${
+                        me?.id === entry.memberId ? 'ranking-page-item-me' : ''
+                      }`}
+                    >
+                      <span className={`ranking-rank ${entry.finalRank <= 3 ? `ranking-rank-${entry.finalRank}` : ''}`}>
+                        {entry.finalRank}
+                      </span>
+                      <span className="ranking-nickname">{entry.nickname}</span>
+                      <span className="ranking-balance">
+                        {formatMoney(entry.finalAsset)} ({formatPercent(entry.finalReturnRate)})
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )
             ) : isParticipant ? (
               !room.isDefault && (
                 <div className="room-detail-actions">
