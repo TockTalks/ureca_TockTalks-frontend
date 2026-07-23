@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react'
+import { Client } from '@stomp/stompjs'
 import { api } from './apiClient'
 import type { Room, RoomRanking } from './types'
 
-const POLL_INTERVAL_MS = 10000
+const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:8080/ws'
+
+type RoomRankingUpdateEvent = {
+  ranking: RoomRanking[]
+}
 
 export function useDefaultRoomRanking() {
   const [ranking, setRanking] = useState<RoomRanking[]>([])
@@ -11,30 +16,45 @@ export function useDefaultRoomRanking() {
 
   useEffect(() => {
     let cancelled = false
-    let roomId: number | null = null
+    let client: Client | null = null
 
-    const loadRanking = async () => {
+    const connect = async () => {
       try {
-        if (roomId === null) {
-          const room = await api.get<Room>('/api/rooms/default')
-          if (cancelled) return
-          roomId = room.id
-          setRoomName(room.name)
+        const room = await api.get<Room>('/api/rooms/default')
+        if (cancelled) return
+        setRoomName(room.name)
+
+        const list = await api.get<RoomRanking[]>(`/api/rooms/${room.id}/ranking`)
+        if (cancelled) return
+        setRanking(list)
+
+        client = new Client({
+          brokerURL: WS_URL,
+          reconnectDelay: 3000,
+        })
+
+        client.onConnect = () => {
+          client!.subscribe(`/topic/room-ranking/${room.id}`, (message) => {
+            try {
+              const event = JSON.parse(message.body) as RoomRankingUpdateEvent
+              setRanking(event.ranking)
+            } catch {
+              // 갱신 이벤트 파싱 실패는 무시하고 다음 이벤트를 기다립니다.
+            }
+          })
         }
 
-        const list = await api.get<RoomRanking[]>(`/api/rooms/${roomId}/ranking`)
-        if (!cancelled) setRanking(list)
+        client.activate()
       } catch {
         if (!cancelled) setLoadError(true)
       }
     }
 
-    loadRanking()
-    const timer = setInterval(loadRanking, POLL_INTERVAL_MS)
+    connect()
 
     return () => {
       cancelled = true
-      clearInterval(timer)
+      client?.deactivate()
     }
   }, [])
 
