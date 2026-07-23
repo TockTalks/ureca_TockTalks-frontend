@@ -51,19 +51,30 @@
   padding: 0;
   background: none;
   border: none;
-  color: var(--color-text-disabled);
+  color: #bfbfbf;
   font-size: 24px;
   line-height: 1;
   cursor: pointer;
-  transition: color var(--motion-fast) var(--ease-in-out);
+  transition:
+    color var(--motion-fast) var(--ease-in-out),
+    transform var(--motion-fast) var(--ease-in-out);
 }
 
 .favorite-star-btn.favorite-star-active {
   color: #faad14;
 }
 
+.favorite-star-btn:not(.favorite-star-active):hover {
+  color: #8c8c8c;
+}
+
+.favorite-star-btn:hover {
+  transform: scale(1.08);
+}
+
 .favorite-star-btn:disabled {
   cursor: default;
+  transform: none;
 }
 
 .stock-favorite-error {
