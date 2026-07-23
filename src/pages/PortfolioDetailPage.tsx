@@ -156,7 +156,13 @@ function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number 
                     <tbody>
                       {detail.holdings.map((h) => (
                         <tr key={h.stockCode}>
-                          <td>{h.stockName}</td>
+                          <td>
+                            {/* ===== 변경: 종목명 클릭 시 해당 방 계좌로 매수/매도 화면 이동 ===== */}
+                            <a href={`/stocks/${h.stockCode}?roomParticipantId=${roomParticipantId}`} className="portfolio-holding-link">
+                              {h.stockName}
+                            </a>
+                            {/* ===== 변경 끝 ===== */}
+                          </td>
                           <td>{h.quantity.toLocaleString('ko-KR')}주</td>
                           <td>{formatMoney(h.avgPurchasePrice)}</td>
                           <td>{formatMoney(h.currentPrice)}</td>
