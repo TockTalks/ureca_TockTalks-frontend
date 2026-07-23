@@ -19,6 +19,7 @@ import ProfilePage from './pages/ProfilePage.tsx'
 import RankingPage from './pages/RankingPage.tsx'
 import AdminReportsPage from './pages/AdminReportsPage.tsx' // ===== 추가 =====
 import AdminStatsPage from './pages/AdminStatsPage.tsx' // ===== 추가 =====
+import AdminMembersPage from './pages/AdminMembersPage.tsx' // ===== 추가 =====
 
 // 라우터 없는 스캐폴드라 경로별로 pathname으로 분기
 function resolvePage() {
@@ -50,6 +51,8 @@ function resolvePage() {
     // ===== 추가: 관리자 신고/통계 페이지 =====
     case '/admin/reports':
       return <AdminReportsPage />
+    case '/admin/members':
+      return <AdminMembersPage />
     case '/admin/stats':
       return <AdminStatsPage />
     // ===== 추가 끝 =====

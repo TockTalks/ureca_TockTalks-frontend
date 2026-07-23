@@ -227,3 +227,24 @@
     width: 100%;
   }
 }
+
+/* 회원 관리 페이지 */
+.admin-members-search {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.admin-members-search .input {
+  flex: 1;
+}
+
+.admin-members-full-table {
+  width: 100%;
+}
+
+.admin-reset-btn {
+  color: var(--color-primary);
+  height: auto;
+  padding: 2px 8px;
+}
