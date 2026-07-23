@@ -93,6 +93,19 @@
   padding: 12px 16px;
   text-align: right;
 }
+
+/* ===== 추가: 보유 종목 표에서 종목명 클릭 시 매수/매도 화면으로 이동하는 링크 ===== */
+.portfolio-holding-link {
+  color: var(--color-text);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.portfolio-holding-link:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+/* ===== 추가 끝 ===== */
 .portfolio-table th:first-child,
 .portfolio-table td:first-child {
   text-align: left;
