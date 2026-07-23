@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Navbar from '../components/Navbar'
 import { api, ApiError } from '../lib/apiClient'
 import type { FavoriteStock, PriceSnapshot, StockInfo } from '../lib/types'
@@ -6,18 +6,10 @@ import { useAuth } from '../lib/useAuth'
 import './StocksPage.css'
 
 const PAGE_SIZE = 12
-const PRICE_BATCH_SIZE = 4
-const PRICE_BATCH_DELAY_MS = 100
+const MULTI_PRICE_CHUNK_SIZE = 30
 const PRICE_RETRY_DELAY_MS = 500
 const PRICE_MAX_ATTEMPTS = 3
-const POLL_INTERVAL_MS = 30000
-
-const getInitialPage = () => {
-  const rawPage = new URLSearchParams(window.location.search).get('page')
-  const parsedPage = Number(rawPage)
-
-  return Number.isInteger(parsedPage) && parsedPage >= 1 ? parsedPage : 1
-}
+const POLL_INTERVAL_MS = 10000
 
 type QuoteLoadProgress = {
   completed: number
@@ -29,6 +21,12 @@ type StockQuote = {
   changeRate: number
 }
 
+type BatchQuote = {
+  stockCode: string
+  currentPrice: number
+  changeRate: number
+}
+
 const wait = (milliseconds: number) =>
   new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds))
 
@@ -36,7 +34,7 @@ function StocksPage() {
   const { me, authChecked, logout } = useAuth()
   const [stocks, setStocks] = useState<StockInfo[]>([])
   const [query, setQuery] = useState('')
-  const [page, setPage] = useState(getInitialPage)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [quotes, setQuotes] = useState<Record<string, StockQuote | null>>({})
@@ -51,18 +49,6 @@ function StocksPage() {
   const [favoriteStocks, setFavoriteStocks] = useState<FavoriteStock[] | null>(null)
   const [favoritePrices, setFavoritePrices] = useState<Record<string, number | null>>({})
   const [favoriteSubmittingCode, setFavoriteSubmittingCode] = useState<string | null>(null)
-  const requestedQuoteCodesRef = useRef(new Set<string>())
-  const requestedFavoritePriceCodesRef = useRef(new Set<string>())
-  const allQuotesLoadedRef = useRef(false)
-  const mountedRef = useRef(true)
-
-  useEffect(() => {
-    mountedRef.current = true
-
-    return () => {
-      mountedRef.current = false
-    }
-  }, [])
 
   useEffect(() => {
     api
@@ -92,13 +78,7 @@ function StocksPage() {
   useEffect(() => {
     if (!favoriteStocks || favoriteStocks.length === 0) return
 
-    const pendingStocks = favoriteStocks.filter(
-      (stock) => !requestedFavoritePriceCodesRef.current.has(stock.stockCode),
-    )
-
-    pendingStocks.forEach((stock) => {
-      requestedFavoritePriceCodesRef.current.add(stock.stockCode)
-
+    favoriteStocks.forEach((stock) => {
       api
         .get<PriceSnapshot>(`/api/price/${stock.stockCode}`)
         .then((snapshot) => {
@@ -210,128 +190,79 @@ function StocksPage() {
   const totalPages = Math.max(1, Math.ceil(sortedStocks.length / PAGE_SIZE))
 
   useEffect(() => {
-    if (loading) return
-
-    setPage((current) => Math.min(current, totalPages))
-  }, [loading, totalPages])
+    setPage(1)
+  }, [query])
 
   useEffect(() => {
-    const url = new URL(window.location.href)
-    const pageParam = page > 1 ? String(page) : null
-
-    if (pageParam === null) {
-      url.searchParams.delete('page')
-    } else {
-      url.searchParams.set('page', pageParam)
-    }
-
-    window.history.replaceState(
-      window.history.state,
-      '',
-      `${url.pathname}${url.search}${url.hash}`,
-    )
-  }, [page])
+    setPage((current) => Math.min(current, totalPages))
+  }, [totalPages])
 
   const pagedStocks = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE
     return sortedStocks.slice(start, start + PAGE_SIZE)
   }, [page, sortedStocks])
 
-  const fetchQuote = useCallback(async (stock: StockInfo, attempt = 0): Promise<void> => {
-    try {
-      const snapshot = await api.get<PriceSnapshot>(`/api/price/${stock.stockCode}`)
-      const currentPrice = Number(snapshot.stck_prpr)
-      const changeRate = Number(snapshot.prdy_ctrt)
+  const fetchBatch = useCallback(
+    async (chunk: StockInfo[], attempt = 0): Promise<BatchQuote[] | null> => {
+      const codes = chunk.map((stock) => stock.stockCode).join(',')
 
-      if (mountedRef.current) {
-        setQuotes((current) => ({
-          ...current,
-          [stock.stockCode]:
-            Number.isFinite(currentPrice) && Number.isFinite(changeRate)
-              ? { currentPrice, changeRate }
-              : null,
-        }))
+      try {
+        return await api.get<BatchQuote[]>(`/api/price/batch?codes=${codes}`)
+      } catch {
+        if (attempt < PRICE_MAX_ATTEMPTS - 1) {
+          await wait(PRICE_RETRY_DELAY_MS)
+          return fetchBatch(chunk, attempt + 1)
+        }
+        return null
       }
-    } catch {
-      if (attempt < PRICE_MAX_ATTEMPTS - 1) {
-        await wait(PRICE_RETRY_DELAY_MS)
-        await fetchQuote(stock, attempt + 1)
-        return
-      }
+    },
+    [],
+  )
 
-      if (mountedRef.current) {
-        setQuotes((current) => ({ ...current, [stock.stockCode]: null }))
-      }
-    }
-  }, [])
-
-  const loadQuotes = useCallback(
+  const loadQuotesBatch = useCallback(
     async (
       targetStocks: StockInfo[],
       onProgress?: (progress: QuoteLoadProgress) => void,
     ) => {
-      const pendingStocks = targetStocks.filter(
-        (stock) => !requestedQuoteCodesRef.current.has(stock.stockCode),
-      )
-      let completed = targetStocks.length - pendingStocks.length
-
-      pendingStocks.forEach((stock) => requestedQuoteCodesRef.current.add(stock.stockCode))
+      let completed = 0
       onProgress?.({ completed, total: targetStocks.length })
 
-      for (let index = 0; index < pendingStocks.length; index += PRICE_BATCH_SIZE) {
-        const batch = pendingStocks.slice(index, index + PRICE_BATCH_SIZE)
+      for (let index = 0; index < targetStocks.length; index += MULTI_PRICE_CHUNK_SIZE) {
+        const chunk = targetStocks.slice(index, index + MULTI_PRICE_CHUNK_SIZE)
+        const results = await fetchBatch(chunk)
+        const resultMap = new Map((results ?? []).map((item) => [item.stockCode, item]))
 
-        await Promise.all(batch.map((stock) => fetchQuote(stock)))
+        setQuotes((current) => {
+          const next = { ...current }
+          chunk.forEach((stock) => {
+            const result = resultMap.get(stock.stockCode)
+            next[stock.stockCode] = result
+              ? { currentPrice: result.currentPrice, changeRate: result.changeRate }
+              : null
+          })
+          return next
+        })
 
-        completed += batch.length
+        completed += chunk.length
         onProgress?.({ completed, total: targetStocks.length })
-
-        if (index + PRICE_BATCH_SIZE < pendingStocks.length) {
-          await wait(PRICE_BATCH_DELAY_MS)
-        }
       }
     },
-    [fetchQuote],
-  )
-
-  const refreshQuotes = useCallback(
-    async (targetStocks: StockInfo[]) => {
-      for (let index = 0; index < targetStocks.length; index += PRICE_BATCH_SIZE) {
-        const batch = targetStocks.slice(index, index + PRICE_BATCH_SIZE)
-        await Promise.all(batch.map((stock) => fetchQuote(stock)))
-
-        if (index + PRICE_BATCH_SIZE < targetStocks.length) {
-          await wait(PRICE_BATCH_DELAY_MS)
-        }
-      }
-    },
-    [fetchQuote],
+    [fetchBatch],
   )
 
   const toggleChangeRateSort = async () => {
     if (isLoadingAllQuotes) return
 
-    if (!allQuotesLoadedRef.current) {
+    if (changeRateSortDirection === null) {
       setIsLoadingAllQuotes(true)
       setQuoteLoadProgress({ completed: 0, total: stocks.length })
 
       try {
-        await loadQuotes(stocks, (progress) => {
-          if (mountedRef.current) {
-            setQuoteLoadProgress(progress)
-          }
-        })
-
-        allQuotesLoadedRef.current = true
-
-        if (mountedRef.current) {
-          setChangeRateSortDirection('desc')
-          setPage(1)
-        }
+        await loadQuotesBatch(stocks, setQuoteLoadProgress)
+        setChangeRateSortDirection('desc')
+        setPage(1)
       } finally {
-        if (mountedRef.current) {
-          setIsLoadingAllQuotes(false)
-        }
+        setIsLoadingAllQuotes(false)
       }
 
       return
@@ -341,18 +272,18 @@ function StocksPage() {
     setPage(1)
   }
 
-    useEffect(() => {
-      void loadQuotes(pagedStocks)
-    }, [pagedStocks, loadQuotes])
+  useEffect(() => {
+    void loadQuotesBatch(pagedStocks)
+  }, [pagedStocks, loadQuotesBatch])
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       if (document.hidden) return
-      void refreshQuotes(pagedStocks)
+      void loadQuotesBatch(pagedStocks)
     }, POLL_INTERVAL_MS)
 
     return () => window.clearInterval(intervalId)
-  }, [pagedStocks, refreshQuotes])
+  }, [pagedStocks, loadQuotesBatch])
 
   return (
     <>
@@ -424,10 +355,7 @@ function StocksPage() {
             className="input stocks-search-input"
             placeholder="종목명 또는 종목코드 입력"
             value={query}
-            onChange={(event) => {
-              setQuery(event.target.value)
-              setPage(1)
-            }}
+            onChange={(event) => setQuery(event.target.value)}
             autoComplete="off"
           />
         </div>
