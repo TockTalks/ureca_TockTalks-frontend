@@ -168,7 +168,9 @@ function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number 
                           <td>{formatMoney(h.currentPrice)}</td>
                           <td>{formatMoney(h.evaluationAmount)}</td>
                           <td className={h.profitAmount > 0 ? 'text-rise' : h.profitAmount < 0 ? 'text-fall' : ''}>
-                            {formatPercent(h.profitRate)}
+                            {/* ===== 변경: 수익률 옆 괄호로 수익금 같이 표시 ===== */}
+                            {formatPercent(h.profitRate)} ({formatMoney(h.profitAmount)})
+                            {/* ===== 변경 끝 ===== */}
                           </td>
                         </tr>
                       ))}
