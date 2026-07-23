@@ -73,6 +73,15 @@ function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number 
 
         {errorMessage && <p className="alert-error">{errorMessage}</p>}
 
+        {/* ===== 추가: 로딩 중 안내 ===== */}
+        {!detail && !errorMessage && (
+          <div className="portfolio-loading">
+            <p>포트폴리오를 불러오는 중...</p>
+            <div className="portfolio-spinner" />
+          </div>
+        )}
+        {/* ===== 추가 끝 ===== */}
+
         {detail && (
           <>
             <div className="card room-detail-card">
