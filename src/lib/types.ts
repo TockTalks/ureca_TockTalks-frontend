@@ -64,6 +64,7 @@ export type PortfolioSummary = {
   profitAmount: number
   profitRate: number
   holdingCount: number
+  isDefault: boolean // ===== 추가: 기본방(로비) 여부 =====
 }
 
 export type PortfolioHolding = {

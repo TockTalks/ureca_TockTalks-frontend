@@ -1,16 +1,23 @@
-.portfolio-summary-bar {
-  display: flex;
-  align-items: center;
-  gap: 32px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-}
-
 /* ===== 추가: 포트폴리오 상세 페이지 수익률 게이지 래퍼 ===== */
 .portfolio-detail-gauge-wrap {
   display: flex;
   justify-content: center;
   margin: 16px 0;
+}
+/* ===== 추가 끝 ===== */
+
+/* ===== 추가: 목록 화면 상단 기본방 카드 (클릭 가능) ===== */
+.portfolio-lobby-card {
+  display: flex;
+  margin-bottom: 24px;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow var(--motion-fast) var(--ease-in-out), border-color var(--motion-fast) var(--ease-in-out);
+}
+
+.portfolio-lobby-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 /* ===== 추가 끝 ===== */
 
@@ -71,10 +78,4 @@
 
 .portfolio-table tbody tr:not(:last-child) td {
   border-bottom: 1px solid var(--color-split);
-}
-
-@media (max-width: 576px) {
-  .portfolio-summary-bar {
-    gap: 16px;
-  }
 }
