@@ -259,7 +259,10 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
       <Navbar me={me} authChecked={authChecked} onLogout={logout} />
 
       <main className="stock-detail-main">
-        <a href="/stocks" className="stock-detail-back">
+        <a
+          href={requestedRoomParticipantId ? `/stocks?roomParticipantId=${requestedRoomParticipantId}` : '/stocks'}
+          className="stock-detail-back"
+        >
           ← 전체 종목
         </a>
 

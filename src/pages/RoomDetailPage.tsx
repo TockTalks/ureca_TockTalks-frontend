@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import Navbar from '../components/Navbar'
 import { api, ApiError } from '../lib/apiClient'
 import { useAuth } from '../lib/useAuth'
-import type { FinalRanking, Room } from '../lib/types'
+import type { FinalRanking, PortfolioSummary, Room, RoomRanking } from '../lib/types'
 import { formatDate, formatMoney, formatPercent, statusBadgeClass, statusLabel } from '../lib/format'
 import './RoomPages.css'
 import './RankingPage.css'
@@ -17,6 +17,8 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [finalRanking, setFinalRanking] = useState<FinalRanking[]>([])
+  const [myPortfolio, setMyPortfolio] = useState<PortfolioSummary | null>(null)
+  const [liveRanking, setLiveRanking] = useState<RoomRanking[]>([])
 
   const load = () => {
     api
@@ -43,6 +45,38 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
   }
 
   useEffect(load, [roomId, me])
+
+  useEffect(() => {
+    if (!me || !isParticipant || room?.status !== 'ongoing') {
+      setMyPortfolio(null)
+      setLiveRanking([])
+      return
+    }
+
+    let cancelled = false
+
+    api
+      .get<PortfolioSummary[]>('/api/portfolios')
+      .then((portfolios) => {
+        if (!cancelled) setMyPortfolio(portfolios.find((p) => p.roomId === roomId) ?? null)
+      })
+      .catch(() => {
+        if (!cancelled) setMyPortfolio(null)
+      })
+
+    api
+      .get<RoomRanking[]>(`/api/rooms/${roomId}/ranking`)
+      .then((data) => {
+        if (!cancelled) setLiveRanking(data)
+      })
+      .catch(() => {
+        if (!cancelled) setLiveRanking([])
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [roomId, me, isParticipant, room?.status])
 
   const handleJoin = async () => {
     setErrorMessage(null)
@@ -171,13 +205,76 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
                 </ol>
               )
             ) : isParticipant ? (
-              !room.isDefault && (
-                <div className="room-detail-actions">
-                  <button type="button" className="btn btn-default" disabled={busy} onClick={handleLeave}>
-                    탈퇴하기
-                  </button>
-                </div>
-              )
+              <>
+                {myPortfolio && (
+                  <>
+                    <div className="room-detail-meta">
+                      <div className="room-detail-meta-item">
+                        <div className="label">보유 현금</div>
+                        <div className="value">{formatMoney(myPortfolio.balance)}</div>
+                      </div>
+                      <div className="room-detail-meta-item">
+                        <div className="label">평가자산</div>
+                        <div className="value">{formatMoney(myPortfolio.totalAssetValue)}</div>
+                      </div>
+                      <div className="room-detail-meta-item">
+                        <div className="label">수익률</div>
+                        <div className="value">{formatPercent(myPortfolio.profitRate)}</div>
+                      </div>
+                      <div className="room-detail-meta-item">
+                        <div className="label">보유 종목</div>
+                        <div className="value">{myPortfolio.holdingCount}개</div>
+                      </div>
+                    </div>
+
+                    <div className="room-detail-actions">
+                      <a
+                        href={`/stocks?roomParticipantId=${myPortfolio.roomParticipantId}`}
+                        className="btn btn-primary"
+                      >
+                        이 방에서 거래하기
+                      </a>
+                      <a href={`/portfolio/${myPortfolio.roomParticipantId}`} className="btn btn-text">
+                        내 포트폴리오 자세히 보기 →
+                      </a>
+                    </div>
+                  </>
+                )}
+
+                <section className="rooms-section">
+                  <div className="rooms-section-header">
+                    <h2>방 랭킹</h2>
+                  </div>
+                  {liveRanking.length === 0 ? (
+                    <p className="rooms-empty">아직 순위 데이터가 없습니다.</p>
+                  ) : (
+                    <ol className="card ranking-page-list">
+                      {liveRanking.map((entry) => (
+                        <li
+                          key={entry.memberId}
+                          className={`ranking-row ranking-page-item ${
+                            me?.id === entry.memberId ? 'ranking-page-item-me' : ''
+                          }`}
+                        >
+                          <span className={`ranking-rank ${entry.rank <= 3 ? `ranking-rank-${entry.rank}` : ''}`}>
+                            {entry.rank}
+                          </span>
+                          <span className="ranking-nickname">{entry.nickname}</span>
+                          <span className="ranking-balance">{formatMoney(entry.balance)}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </section>
+
+                {!room.isDefault && (
+                  <div className="room-detail-actions">
+                    <button type="button" className="btn btn-default" disabled={busy} onClick={handleLeave}>
+                      탈퇴하기
+                    </button>
+                  </div>
+                )}
+              </>
             ) : room.isPublic ? (
               <div className="room-detail-actions">
                 <button type="button" className="btn btn-primary" disabled={busy} onClick={handleJoin}>

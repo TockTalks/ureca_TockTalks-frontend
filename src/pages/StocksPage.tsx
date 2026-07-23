@@ -19,6 +19,8 @@ const getInitialPage = () => {
   return Number.isInteger(parsedPage) && parsedPage >= 1 ? parsedPage : 1
 }
 
+const getRoomParticipantId = () => new URLSearchParams(window.location.search).get('roomParticipantId')
+
 type QuoteLoadProgress = {
   completed: number
   total: number
@@ -51,6 +53,8 @@ function StocksPage() {
   const [favoriteStocks, setFavoriteStocks] = useState<FavoriteStock[] | null>(null)
   const [favoritePrices, setFavoritePrices] = useState<Record<string, number | null>>({})
   const [favoriteSubmittingCode, setFavoriteSubmittingCode] = useState<string | null>(null)
+  const roomParticipantId = useMemo(getRoomParticipantId, [])
+  const stockLinkSuffix = roomParticipantId ? `?roomParticipantId=${roomParticipantId}` : ''
   const requestedQuoteCodesRef = useRef(new Set<string>())
   const requestedFavoritePriceCodesRef = useRef(new Set<string>())
   const allQuotesLoadedRef = useRef(false)
@@ -363,7 +367,11 @@ function StocksPage() {
           <div>
             <span className="section-eyebrow">STOCKS</span>
             <h1>전체 종목</h1>
-            <p>종목명 또는 종목코드로 원하는 주식을 찾아보세요.</p>
+            <p>
+              {roomParticipantId
+                ? '이 방 계좌로 거래됩니다. 종목을 선택해 주문해 보세요.'
+                : '종목명 또는 종목코드로 원하는 주식을 찾아보세요.'}
+            </p>
           </div>
 
           {!loading && !errorMessage && (
@@ -388,7 +396,7 @@ function StocksPage() {
               <ul className="favorite-stocks-list">
                 {favoriteStocks.map((stock) => (
                   <li key={stock.stockCode} className="favorite-stock-chip">
-                    <a href={`/stocks/${stock.stockCode}`} className="favorite-stock-chip-link">
+                    <a href={`/stocks/${stock.stockCode}${stockLinkSuffix}`} className="favorite-stock-chip-link">
                       <span>{stock.stockName}</span>
                       <span className="favorite-stock-price">
                         {favoritePrices[stock.stockCode] === undefined
@@ -508,7 +516,7 @@ function StocksPage() {
                     )}
 
                     <a
-                      href={`/stocks/${stock.stockCode}`}
+                      href={`/stocks/${stock.stockCode}${stockLinkSuffix}`}
                       className="stock-list-item"
                       aria-label={`${stock.stockName} 상세 보기`}
                     >
