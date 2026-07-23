@@ -163,3 +163,29 @@ export type DailyPrice = {
   closePrice: number
   volume: number
 }
+
+export type ReportTargetType = 'POST' | 'COMMENT' | 'ROOM'
+export type ReportStatus = 'pending' | 'rejected' | 'deleted'
+
+export type Report = {
+  id: number
+  reporterId: number
+  targetType: ReportTargetType
+  targetId: number
+  targetMemberId: number
+  reason: string
+  targetContent: string | null
+  status: ReportStatus
+  createdAt: string
+}
+
+export type AdminMember = {
+  id: number
+  email: string
+  nickname: string
+  provider: string
+  role: string
+  status: string
+  reportedCount: number
+  createdAt: string
+}
