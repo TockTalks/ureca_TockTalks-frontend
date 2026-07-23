@@ -228,23 +228,103 @@
   }
 }
 
-/* 회원 관리 페이지 */
-.admin-members-search {
+/* 통계 페이지 */
+.admin-stats-main {
+  max-width: 900px;
   display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.admin-stats-section h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+.admin-stats-section h4 {
+  margin: 20px 0 8px;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.stat-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-sm);
+}
+
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-sm);
+  background: var(--color-bg-layout);
+  border-radius: var(--radius-control);
+}
+
+.stat-tile-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.stat-tile-value {
+  font-size: 20px;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-stats-room-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
-  margin: 16px 0;
+  margin-top: 12px;
 }
 
-.admin-members-search .input {
+.admin-stats-muted {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.admin-stats-chart {
+  height: 220px;
+}
+
+.admin-stats-chart-small {
+  height: 180px;
+}
+
+.admin-stats-rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-stats-rank-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--color-bg-layout);
+  border-radius: var(--radius-control);
+  font-size: 13px;
+}
+
+.admin-stats-post-content {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.admin-members-full-table {
-  width: 100%;
-}
-
-.admin-reset-btn {
-  color: var(--color-primary);
-  height: auto;
-  padding: 2px 8px;
+.admin-stats-report-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
