@@ -43,6 +43,7 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
   const [orderType, setOrderType] = useState<TradeType>('BUY')
   const [quantity, setQuantity] = useState('')
   const [holding, setHolding] = useState<TradeHolding | null>(null)
+  const [availableBalance, setAvailableBalance] = useState<number | null>(null)
   const [isFavorite, setIsFavorite] = useState(false)
   const [favoriteSubmitting, setFavoriteSubmitting] = useState(false)
   const [favoriteError, setFavoriteError] = useState<string | null>(null)
@@ -62,29 +63,41 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
   const [roomParticipantId, setRoomParticipantId] = useState(requestedRoomParticipantId)
 
   useEffect(() => {
-    if (!me || roomParticipantId) return
+    if (!me) {
+      setAvailableBalance(null)
+      return
+    }
 
     let cancelled = false
     setParticipantLoading(true)
     setParticipantError(null)
 
-    Promise.all([
-      api.get<Room>('/api/rooms/default'),
-      api.get<PortfolioSummary[]>('/api/portfolios'),
-    ])
-      .then(([defaultRoom, portfolios]) => {
+    const defaultRoomRequest = requestedRoomParticipantId
+      ? Promise.resolve<Room | null>(null)
+      : api.get<Room>('/api/rooms/default')
+
+    Promise.all([api.get<PortfolioSummary[]>('/api/portfolios'), defaultRoomRequest])
+      .then(([portfolios, defaultRoom]) => {
         if (cancelled) return
 
-        const defaultPortfolio = portfolios.find(
-          (portfolio) => portfolio.roomId === defaultRoom.id,
-        )
+        const selectedPortfolio = requestedRoomParticipantId
+          ? portfolios.find(
+              (portfolio) => portfolio.roomParticipantId === requestedRoomParticipantId,
+            )
+          : portfolios.find((portfolio) => portfolio.roomId === defaultRoom?.id)
 
-        if (!defaultPortfolio) {
-          setParticipantError('기본 투자 계좌를 찾을 수 없습니다.')
+        if (!selectedPortfolio) {
+          setAvailableBalance(null)
+          setParticipantError(
+            requestedRoomParticipantId
+              ? '요청한 투자 계좌를 찾을 수 없습니다.'
+              : '기본 투자 계좌를 찾을 수 없습니다.',
+          )
           return
         }
 
-        setRoomParticipantId(defaultPortfolio.roomParticipantId)
+        setRoomParticipantId(selectedPortfolio.roomParticipantId)
+        setAvailableBalance(selectedPortfolio.balance)
       })
       .catch((error) => {
         if (cancelled) return
@@ -104,7 +117,7 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
     return () => {
       cancelled = true
     }
-  }, [me, roomParticipantId])
+  }, [me, requestedRoomParticipantId])
 
   useEffect(() => {
     api
@@ -175,6 +188,10 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
   const parsedQuantity = Number(quantity)
   const isValidQuantity = Number.isSafeInteger(parsedQuantity) && parsedQuantity > 0
   const estimatedAmount = latestPrice !== null && isValidQuantity ? latestPrice * parsedQuantity : 0
+  const maxBuyQuantity =
+    availableBalance !== null && latestPrice !== null && latestPrice > 0
+      ? Math.floor(availableBalance / latestPrice)
+      : null
 
   const handleOrderTypeChange = (nextType: TradeType) => {
     setOrderType(nextType)
@@ -205,6 +222,11 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
       return
     }
 
+    if (orderType === 'BUY' && maxBuyQuantity !== null && parsedQuantity > maxBuyQuantity) {
+      setErrorMessage('보유 현금으로 구매 가능한 수량을 초과했습니다.')
+      return
+    }
+
     if (orderType === 'SELL' && (!holding || parsedQuantity > holding.quantity)) {
       setErrorMessage('보유 수량 안에서 매도 수량을 입력해 주세요.')
       return
@@ -222,6 +244,7 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
       )
 
       setExecution(result)
+      setAvailableBalance(result.balance)
       setQuantity('')
       loadHolding()
     } catch (error) {
@@ -351,6 +374,25 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
                   <strong>{latestPrice === null ? '-' : formatMoney(latestPrice)}</strong>
                 </div>
 
+                {orderType === 'BUY' && (
+                  <>
+                    <div className="order-info-row">
+                      <span>보유 현금</span>
+                      <strong>
+                        {availableBalance === null ? '-' : formatMoney(availableBalance)}
+                      </strong>
+                    </div>
+                    <div className="order-info-row">
+                      <span>최대 구매 가능</span>
+                      <strong>
+                        {maxBuyQuantity === null
+                          ? '-'
+                          : `${maxBuyQuantity.toLocaleString('ko-KR')}주`}
+                      </strong>
+                    </div>
+                  </>
+                )}
+
                 {orderType === 'SELL' && (
                   <>
                     <div className="order-info-row">
@@ -376,6 +418,11 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
                     type="number"
                     className="input order-quantity-input"
                     min="1"
+                    max={
+                      orderType === 'BUY'
+                        ? (maxBuyQuantity ?? undefined)
+                        : (holding?.quantity ?? undefined)
+                    }
                     step="1"
                     inputMode="numeric"
                     placeholder="수량 입력"
