@@ -1,27 +1,12 @@
-import { useEffect, useState } from 'react'
 import Navbar from '../components/Navbar'
-import { api } from '../lib/apiClient'
 import { useAuth } from '../lib/useAuth'
-import type { Room, RoomRanking } from '../lib/types'
+import { useDefaultRoomRanking } from '../lib/useRanking'
 import { formatMoney } from '../lib/format'
 import './RankingPage.css'
 
 function RankingPage() {
   const { me, authChecked, logout } = useAuth()
-  const [room, setRoom] = useState<Room | null>(null)
-  const [ranking, setRanking] = useState<RoomRanking[]>([])
-  const [loadError, setLoadError] = useState<string | null>(null)
-
-  useEffect(() => {
-    api
-      .get<Room>('/api/rooms/default')
-      .then((defaultRoom) => {
-        setRoom(defaultRoom)
-        return api.get<RoomRanking[]>(`/api/rooms/${defaultRoom.id}/ranking`)
-      })
-      .then(setRanking)
-      .catch(() => setLoadError('랭킹을 불러오지 못했습니다.'))
-  }, [])
+  const { ranking, roomName, loadError } = useDefaultRoomRanking()
 
   const myRanking = me ? ranking.find((entry) => entry.memberId === me.id) : undefined
 
@@ -33,11 +18,11 @@ function RankingPage() {
         <div className="section-title-row">
           <div>
             <span className="section-eyebrow">RANKING</span>
-            <h1 className="home-section-title">{room ? room.name : '실시간'} 랭킹</h1>
+            <h1 className="home-section-title">{roomName ?? '실시간'} 랭킹</h1>
           </div>
         </div>
 
-        {loadError && <p className="alert-error">{loadError}</p>}
+        {loadError && <p className="alert-error">랭킹을 불러오지 못했습니다.</p>}
 
         {authChecked && myRanking && (
           <div className="card ranking-my-summary">
