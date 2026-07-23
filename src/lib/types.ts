@@ -19,6 +19,14 @@ export type RoomRanking = {
   balance: number
 }
 
+export type FinalRanking = {
+  memberId: number
+  nickname: string
+  finalAsset: number
+  finalReturnRate: number
+  finalRank: number
+}
+
 export type RoomParticipant = {
   id: number
   roomId: number
