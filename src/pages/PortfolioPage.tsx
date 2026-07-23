@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Navbar from '../components/Navbar'
 import PortfolioCompositionChart from '../components/PortfolioCompositionChart' // ===== 변경: 상단 요약 게이지 → 기본방 구성 도넛 차트 =====
 import ProfitRateGauge from '../components/ProfitRateGauge'
@@ -83,8 +83,23 @@ function PortfolioPage() {
   const endedPortfolios = portfolios.filter((p) => !p.isDefault && p.roomStatus === 'closed')
   // ===== 변경 끝 =====
 
+  // ===== 추가: 카드에 마우스 올리면 상세 API 미리 호출 (백엔드 Redis 시세 캐시 워밍업) =====
+  const prefetchedRef = useRef<Set<number>>(new Set())
+
+  const prefetchDetail = (roomParticipantId: number) => {
+    if (prefetchedRef.current.has(roomParticipantId)) return
+    prefetchedRef.current.add(roomParticipantId)
+    api.get(`/api/portfolios/${roomParticipantId}`).catch(() => {})
+  }
+  // ===== 추가 끝 =====
+
   const renderPortfolioCard = (p: PortfolioSummary) => (
-    <a key={p.roomParticipantId} href={`/portfolio/${p.roomParticipantId}`} className="card room-card">
+    <a
+      key={p.roomParticipantId}
+      href={`/portfolio/${p.roomParticipantId}`}
+      className="card room-card"
+      onMouseEnter={() => prefetchDetail(p.roomParticipantId)} // ===== 추가 =====
+    >
       <div className="room-card-header">
         <h3>{p.roomName}</h3>
         <span className={statusBadgeClass(p.roomStatus)}>{statusLabel(p.roomStatus)}</span>
@@ -111,6 +126,15 @@ function PortfolioPage() {
         <h2>내 포트폴리오</h2>
 
         {errorMessage && <p className="alert-error">{errorMessage}</p>}
+
+        {/* ===== 추가: 로딩 중 안내 ===== */}
+        {!loaded && !errorMessage && (
+          <div className="portfolio-loading">
+            <p>포트폴리오를 불러오는 중...</p>
+            <div className="portfolio-spinner" />
+          </div>
+        )}
+        {/* ===== 추가 끝 ===== */}
 
         {/* ===== 변경: 총합 요약바 → 기본방(로비) 포트폴리오 상세 카드 ===== */}
         {loaded && !errorMessage && defaultDetail && defaultPortfolio && (
