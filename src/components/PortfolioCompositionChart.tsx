@@ -1,44 +1,24 @@
 import './PortfolioCompositionChart.css'
 import type { PortfolioHolding } from '../lib/types'
 import { formatMoney, formatPercent } from '../lib/format'
+import { buildCompositionSegments } from '../lib/portfolioComposition' // ===== 변경: 세그먼트 계산 로직 공용 헬퍼로 분리 =====
 
-// 검증된 카테고리컬 팔레트(고정 순서) — validate_palette.js 통과, 색맹 대비 확보
-const SERIES_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948']
-const CASH_COLOR = '#c3c2b7'
 const GAP_DEG = 2
-
-type Segment = {
-  key: string
-  label: string
-  value: number
-  purchaseAmount: number | null
-  color: string
-}
 
 type PortfolioCompositionChartProps = {
   holdings: PortfolioHolding[]
   balance: number
   profitRate: number
   size?: number
+  showLegend?: boolean // ===== 추가: 목록 화면 컴팩트 카드에서는 범례를 이 컴포넌트 밖에서 따로 그리기 위함 =====
 }
 
-function PortfolioCompositionChart({ holdings, balance, profitRate, size = 160 }: PortfolioCompositionChartProps) {
+function PortfolioCompositionChart({ holdings, balance, profitRate, size = 160, showLegend = true }: PortfolioCompositionChartProps) {
   const strokeWidth = size * 0.16
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
 
-  const stockSegments: Segment[] = holdings
-    .filter((h) => h.evaluationAmount > 0)
-    .map((h, i) => ({
-      key: h.stockCode,
-      label: h.stockName,
-      value: h.evaluationAmount,
-      purchaseAmount: h.avgPurchasePrice * h.quantity,
-      color: SERIES_COLORS[i % SERIES_COLORS.length],
-    }))
-
-  const segments: Segment[] =
-    balance > 0 ? [...stockSegments, { key: '__cash', label: '현금', value: balance, purchaseAmount: null, color: CASH_COLOR }] : stockSegments
+  const segments = buildCompositionSegments(holdings, balance) // ===== 변경 =====
 
   const total = segments.reduce((sum, s) => sum + s.value, 0) || 1
   const gapLength = (GAP_DEG / 360) * circumference
@@ -78,17 +58,21 @@ function PortfolioCompositionChart({ holdings, balance, profitRate, size = 160 }
         </div>
       </div>
 
-      <ul className="portfolio-composition-legend">
-        {segments.map((s) => (
-          <li key={s.key}>
-            <span className="portfolio-composition-swatch" style={{ background: s.color }} />
-            <span className="portfolio-composition-legend-label">{s.label}</span>
-            <span className="portfolio-composition-legend-value">
-              {s.purchaseAmount != null ? `매입 ${formatMoney(s.purchaseAmount)} · 평가 ${formatMoney(s.value)}` : formatMoney(s.value)}
-            </span>
-          </li>
-        ))}
-      </ul>
+      {/* ===== 변경: showLegend가 false면 범례 생략 ===== */}
+      {showLegend && (
+        <ul className="portfolio-composition-legend">
+          {segments.map((s) => (
+            <li key={s.key}>
+              <span className="portfolio-composition-swatch" style={{ background: s.color }} />
+              <span className="portfolio-composition-legend-label">{s.label}</span>
+              <span className="portfolio-composition-legend-value">
+                {s.purchaseAmount != null ? `매입 ${formatMoney(s.purchaseAmount)} · 평가 ${formatMoney(s.value)}` : formatMoney(s.value)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {/* ===== 변경 끝 ===== */}
     </div>
   )
 }

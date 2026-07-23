@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Navbar from '../components/Navbar'
 import PortfolioCompositionChart from '../components/PortfolioCompositionChart' // ===== 변경: 상단 요약 게이지 → 기본방 구성 도넛 차트 =====
+import PortfolioCompositionLegendCompact from '../components/PortfolioCompositionLegendCompact' // ===== 추가: 목록 화면용 가로 범례 =====
 import ProfitRateGauge from '../components/ProfitRateGauge'
 import { api, ApiError } from '../lib/apiClient'
 import { useAuth } from '../lib/useAuth'
@@ -144,44 +145,50 @@ function PortfolioPage() {
               <span className={statusBadgeClass(defaultDetail.roomStatus)}>{statusLabel(defaultDetail.roomStatus)}</span>
             </div>
 
-            <div className="portfolio-detail-gauge-wrap">
+            {/* ===== 변경: 도넛(범례 제외) + 통계를 가로로 배치, 범례는 밑에 가로로 나열 ===== */}
+            <div className="portfolio-lobby-summary-row">
               <PortfolioCompositionChart
                 holdings={defaultDetail.holdings}
                 balance={defaultDetail.balance}
                 profitRate={defaultDetail.profitRate}
+                size={140}
+                showLegend={false}
               />
+
+              <div className="room-detail-meta portfolio-lobby-meta">
+                <div className="room-detail-meta-item">
+                  <div className="label">평가자산</div>
+                  <div className="value">{formatMoney(defaultDetail.totalAssetValue)}</div>
+                </div>
+                <div className="room-detail-meta-item">
+                  <div className="label">현금 잔고</div>
+                  <div className="value">{formatMoney(defaultDetail.balance)}</div>
+                </div>
+                <div className="room-detail-meta-item">
+                  <div className="label">주식 평가금액</div>
+                  <div className="value">{formatMoney(defaultDetail.stockValuation)}</div>
+                </div>
+                <div className="room-detail-meta-item">
+                  <div className="label">시드머니</div>
+                  <div className="value">{formatMoney(defaultDetail.initialSeedMoney)}</div>
+                </div>
+                <div className="room-detail-meta-item">
+                  <div className="label">수익률</div>
+                  <div className="value">
+                    <span className={profitBadgeClass(defaultDetail.profitAmount)}>{formatPercent(defaultDetail.profitRate)}</span>
+                  </div>
+                </div>
+                <div className="room-detail-meta-item">
+                  <div className="label">수익금</div>
+                  <div className={`value ${defaultDetail.profitAmount > 0 ? 'text-rise' : defaultDetail.profitAmount < 0 ? 'text-fall' : ''}`}>
+                    {formatMoney(defaultDetail.profitAmount)}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="room-detail-meta">
-              <div className="room-detail-meta-item">
-                <div className="label">평가자산</div>
-                <div className="value">{formatMoney(defaultDetail.totalAssetValue)}</div>
-              </div>
-              <div className="room-detail-meta-item">
-                <div className="label">현금 잔고</div>
-                <div className="value">{formatMoney(defaultDetail.balance)}</div>
-              </div>
-              <div className="room-detail-meta-item">
-                <div className="label">주식 평가금액</div>
-                <div className="value">{formatMoney(defaultDetail.stockValuation)}</div>
-              </div>
-              <div className="room-detail-meta-item">
-                <div className="label">시드머니</div>
-                <div className="value">{formatMoney(defaultDetail.initialSeedMoney)}</div>
-              </div>
-              <div className="room-detail-meta-item">
-                <div className="label">수익률</div>
-                <div className="value">
-                  <span className={profitBadgeClass(defaultDetail.profitAmount)}>{formatPercent(defaultDetail.profitRate)}</span>
-                </div>
-              </div>
-              <div className="room-detail-meta-item">
-                <div className="label">수익금</div>
-                <div className={`value ${defaultDetail.profitAmount > 0 ? 'text-rise' : defaultDetail.profitAmount < 0 ? 'text-fall' : ''}`}>
-                  {formatMoney(defaultDetail.profitAmount)}
-                </div>
-              </div>
-            </div>
+            <PortfolioCompositionLegendCompact holdings={defaultDetail.holdings} balance={defaultDetail.balance} />
+            {/* ===== 변경 끝 ===== */}
           </a>
         )}
         {/* ===== 변경 끝 ===== */}
