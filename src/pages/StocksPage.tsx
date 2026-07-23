@@ -11,6 +11,13 @@ const PRICE_BATCH_DELAY_MS = 100
 const PRICE_RETRY_DELAY_MS = 500
 const PRICE_MAX_ATTEMPTS = 3
 
+const getInitialPage = () => {
+  const rawPage = new URLSearchParams(window.location.search).get('page')
+  const parsedPage = Number(rawPage)
+
+  return Number.isInteger(parsedPage) && parsedPage >= 1 ? parsedPage : 1
+}
+
 type QuoteLoadProgress = {
   completed: number
   total: number
@@ -28,7 +35,7 @@ function StocksPage() {
   const { me, authChecked, logout } = useAuth()
   const [stocks, setStocks] = useState<StockInfo[]>([])
   const [query, setQuery] = useState('')
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(getInitialPage)
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [quotes, setQuotes] = useState<Record<string, StockQuote | null>>({})
@@ -202,12 +209,27 @@ function StocksPage() {
   const totalPages = Math.max(1, Math.ceil(sortedStocks.length / PAGE_SIZE))
 
   useEffect(() => {
-    setPage(1)
-  }, [query])
+    if (loading) return
+
+    setPage((current) => Math.min(current, totalPages))
+  }, [loading, totalPages])
 
   useEffect(() => {
-    setPage((current) => Math.min(current, totalPages))
-  }, [totalPages])
+    const url = new URL(window.location.href)
+    const pageParam = page > 1 ? String(page) : null
+
+    if (pageParam === null) {
+      url.searchParams.delete('page')
+    } else {
+      url.searchParams.set('page', pageParam)
+    }
+
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${url.pathname}${url.search}${url.hash}`,
+    )
+  }, [page])
 
   const pagedStocks = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE
@@ -378,7 +400,10 @@ function StocksPage() {
             className="input stocks-search-input"
             placeholder="종목명 또는 종목코드 입력"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value)
+              setPage(1)
+            }}
             autoComplete="off"
           />
         </div>
