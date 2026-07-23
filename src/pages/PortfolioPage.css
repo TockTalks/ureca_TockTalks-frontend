@@ -49,6 +49,20 @@
 }
 /* ===== 추가 끝 ===== */
 
+/* ===== 추가: 목록 화면 상단 카드 - 도넛+통계 가로 배치 ===== */
+.portfolio-lobby-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.portfolio-lobby-meta {
+  flex: 1;
+  min-width: 220px;
+}
+/* ===== 추가 끝 ===== */
+
 .portfolio-summary-item .label {
   font-size: 12px;
   color: var(--color-text-secondary);

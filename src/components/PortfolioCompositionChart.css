@@ -53,3 +53,23 @@
 .portfolio-composition-legend-value {
   color: var(--color-text-secondary);
 }
+
+/* ===== 추가: 목록 화면 컴팩트 카드용 가로 나열 범례 ===== */
+.portfolio-composition-legend-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  width: 100%;
+}
+
+.portfolio-composition-legend-compact li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text);
+}
+/* ===== 추가 끝 ===== */
