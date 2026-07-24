@@ -60,6 +60,11 @@ export type PriceSnapshot = {
   stck_lwpr: string
 }
 
+export type PortfolioBalance = {
+  roomParticipantId: number
+  balance: number
+}
+
 export type PortfolioSummary = {
   roomParticipantId: number
   roomId: number
