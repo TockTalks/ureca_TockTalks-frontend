@@ -10,6 +10,7 @@ import './RankingPage.css'
 
 function RoomDetailPage({ roomId }: { roomId: number }) {
   const { me, authChecked, logout } = useAuth()
+  const isAdmin = me?.role === 'admin'
   const [room, setRoom] = useState<Room | null>(null)
   const [isParticipant, setIsParticipant] = useState(false)
   const [inviteCode, setInviteCode] = useState('')
@@ -115,6 +116,19 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
     } catch (err) {
       setErrorMessage(err instanceof ApiError ? err.message : '탈퇴에 실패했습니다.')
     } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!window.confirm('방을 정말로 삭제하시겠습니까?')) return
+    setErrorMessage(null)
+    setBusy(true)
+    try {
+      await api.del(`/api/admin/rooms/${roomId}`)
+      window.location.href = '/rooms'
+    } catch (err) {
+      setErrorMessage(err instanceof ApiError ? err.message : '삭제에 실패했습니다.')
       setBusy(false)
     }
   }
@@ -280,6 +294,11 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
                 <button type="button" className="btn btn-primary" disabled={busy} onClick={handleJoin}>
                   {busy ? '참가 중…' : '참가하기'}
                 </button>
+                {isAdmin && !room.isDefault && (
+                  <button type="button" className="btn btn-text room-delete-btn" disabled={busy} onClick={handleDelete}>
+                    삭제
+                  </button>
+                )}
               </div>
             ) : (
               <form className="invite-join-form" onSubmit={handleJoinByInviteCode}>
