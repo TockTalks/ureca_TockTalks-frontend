@@ -25,6 +25,7 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
   const canLeaveRoom = Boolean(
     room &&
       !room.isDefault &&
+      room.status === 'recruiting' &&
       room.startAt &&
       !battleStarted &&
       Number.isFinite(new Date(room.startAt).getTime()) &&
@@ -36,7 +37,7 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
       .get<Room>(`/api/rooms/${roomId}`)
       .then((data) => {
         setRoom(data)
-        if (data.status !== 'ongoing') {
+        if (data.status === 'closed') {
           api
             .get<FinalRanking[]>(`/api/rooms/${roomId}/rankings/final`)
             .then(setFinalRanking)
@@ -236,7 +237,7 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
               <p className="rooms-empty">
                 <a href="/login">로그인</a> 후 참가할 수 있습니다.
               </p>
-            ) : room.status !== 'ongoing' ? (
+            ) : room.status === 'closed' ? (
               finalRanking.length === 0 ? (
                 <p className="rooms-empty">종료된 방입니다.</p>
               ) : (
@@ -296,7 +297,7 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
                   </>
                 )}
 
-                <section className="rooms-section">
+                {room.status === 'ongoing' && <section className="rooms-section">
                   <div className="rooms-section-header">
                     <h2>방 랭킹</h2>
                   </div>
@@ -320,7 +321,7 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
                       ))}
                     </ol>
                   )}
-                </section>
+                </section>}
 
                 {canLeaveRoom && (
                   <div className="room-detail-actions">
@@ -330,6 +331,8 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
                   </div>
                 )}
               </>
+            ) : room.status !== 'recruiting' ? (
+              <p className="rooms-empty">이미 시작된 방입니다.</p>
             ) : room.isPublic ? (
               <div className="room-detail-actions">
                 <button type="button" className="btn btn-primary" disabled={busy} onClick={handleJoin}>
