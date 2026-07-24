@@ -28,6 +28,16 @@ export type FinalRanking = {
   finalRank: number
 }
 
+export type RoomHistoryEntry = {
+  roomId: number
+  roomName: string
+  endAt: string | null
+  finalRank: number
+  finalAsset: number
+  finalReturnRate: number
+  participantCount: number
+}
+
 export type RoomParticipant = {
   id: number
   roomId: number
