@@ -4,7 +4,15 @@ import PortfolioCompositionChart from '../components/PortfolioCompositionChart' 
 import { api, ApiError } from '../lib/apiClient'
 import { useAuth } from '../lib/useAuth'
 import type { PortfolioDetail, PortfolioHistoryPoint } from '../lib/types'
-import { formatDate, formatMoney, formatPercent, profitBadgeClass, statusBadgeClass, statusLabel } from '../lib/format'
+import {
+  formatDate,
+  formatMoney,
+  formatPercent,
+  profitBadgeClass,
+  profitTextClass, // ===== 추가 =====
+  statusBadgeClass,
+  statusLabel,
+} from '../lib/format'
 import './PortfolioPage.css'
 
 function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number }) {
@@ -12,6 +20,13 @@ function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number 
   const [detail, setDetail] = useState<PortfolioDetail | null>(null)
   const [history, setHistory] = useState<PortfolioHistoryPoint[]>([])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  // ===== 추가: 자산 변동 히스토리 공유 버튼 - 클릭까지만 구현, 실제 이동 로직은 커뮤니티 담당 팀원이 연결 예정 =====
+  const handleShareHistory = (transactionId: number | null) => {
+    // TODO: 커뮤니티 담당 팀원이 이어서 구현 - /community/write?transactionId=... 로 이동해 인증글 작성
+    console.log('공유 버튼 클릭 - transactionId:', transactionId)
+  }
+  // ===== 추가 끝 =====
 
   useEffect(() => {
     if (authChecked && !me) {
@@ -192,14 +207,43 @@ function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number 
                     <thead>
                       <tr>
                         <th>일시</th>
-                        <th>총자산</th>
+                        {/* ===== 변경: 매수 상세/매도 손익 컬럼 + 공유 버튼 컬럼 추가, "총자산" → "평가 자산"으로 표기 수정 ===== */}
+                        <th>내용</th>
+                        <th>손익</th>
+                        <th>평가 자산</th>
+                        <th></th>
+                        {/* ===== 변경 끝 ===== */}
                       </tr>
                     </thead>
                     <tbody>
-                      {history.map((h) => (
-                        <tr key={h.recordedAt}>
+                      {history.map((h, index) => (
+                        <tr key={`${h.recordedAt}-${index}`}>
                           <td>{formatDate(h.recordedAt)}</td>
+                          {/* ===== 추가: 매수는 종목/가격/수량, 매도는 종목/수량만 표시 (손익은 옆 컬럼에) ===== */}
+                          <td>
+                            {h.tradeType === 'BUY' &&
+                              `${h.stockName} ${formatMoney(h.price ?? 0)} · ${h.quantity?.toLocaleString('ko-KR')}주 매수`}
+                            {h.tradeType === 'SELL' && `${h.stockName} ${h.quantity?.toLocaleString('ko-KR')}주 매도`}
+                            {!h.tradeType && '-'}
+                          </td>
+                          <td className={h.tradeType === 'SELL' && h.profitAmount != null ? profitTextClass(h.profitAmount) : ''}>
+                            {h.tradeType === 'SELL' && h.profitAmount != null && h.profitRate != null
+                              ? `${formatPercent(h.profitRate)} (${formatMoney(h.profitAmount)})`
+                              : '-'}
+                          </td>
                           <td>{formatMoney(h.totalAssetValue)}</td>
+                          <td>
+                            {/* ===== 변경: 우선 클릭 가능하도록 disabled 제거 - 실제 연결은 커뮤니티 담당 팀원이 진행 ===== */}
+                            <button
+                              type="button"
+                              className="btn btn-text"
+                              onClick={() => handleShareHistory(h.transactionId)}
+                            >
+                              공유
+                            </button>
+                            {/* ===== 변경 끝 ===== */}
+                          </td>
+                          {/* ===== 추가 끝 ===== */}
                         </tr>
                       ))}
                     </tbody>

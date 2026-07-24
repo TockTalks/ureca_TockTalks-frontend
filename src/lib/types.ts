@@ -93,6 +93,16 @@ export type PortfolioDetail = PortfolioSummary & {
 export type PortfolioHistoryPoint = {
   recordedAt: string
   totalAssetValue: number
+  // ===== 변경: 이 스냅샷을 발생시킨 거래 정보 (변경 전 기록은 null) =====
+  transactionId: number | null
+  stockCode: string | null
+  stockName: string | null
+  quantity: number | null
+  tradeType: 'BUY' | 'SELL' | null
+  price: number | null
+  profitAmount: number | null
+  profitRate: number | null
+  // ===== 변경 끝 =====
 }
 
 export type TradeType = 'BUY' | 'SELL'
