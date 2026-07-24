@@ -60,6 +60,26 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
     const parsedValue = Number(rawValue)
     return Number.isSafeInteger(parsedValue) && parsedValue > 0 ? parsedValue : null
   }, [])
+  const returnPage = useMemo(() => {
+    const rawValue = new URLSearchParams(window.location.search).get('fromPage')
+    if (!rawValue) return 1
+
+    const parsedValue = Number(rawValue)
+    return Number.isSafeInteger(parsedValue) && parsedValue > 1 ? parsedValue : 1
+  }, [])
+  const stocksBackHref = useMemo(() => {
+    const params = new URLSearchParams()
+
+    if (requestedRoomParticipantId) {
+      params.set('roomParticipantId', String(requestedRoomParticipantId))
+    }
+    if (returnPage > 1) {
+      params.set('page', String(returnPage))
+    }
+
+    const queryString = params.toString()
+    return queryString ? `/stocks?${queryString}` : '/stocks'
+  }, [requestedRoomParticipantId, returnPage])
   const [roomParticipantId, setRoomParticipantId] = useState(requestedRoomParticipantId)
 
   useEffect(() => {
@@ -304,7 +324,7 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
 
       <main className="stock-detail-main">
         <a
-          href={requestedRoomParticipantId ? `/stocks?roomParticipantId=${requestedRoomParticipantId}` : '/stocks'}
+          href={stocksBackHref}
           className="stock-detail-back"
         >
           ← 전체 종목
