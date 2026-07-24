@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react' // ===== 추가 =====
 import type { Me } from '../lib/useAuth'
+import logo from '../assets/logo.png' // ===== 추가: 텍스트 로고 → 이미지 로고 교체 =====
 import './Navbar.css'
 
 type NavbarProps = {
@@ -36,9 +37,11 @@ function Navbar({ me, authChecked, onLogout }: NavbarProps) {
 
   return (
     <header className="navbar">
+      {/* ===== 변경: 텍스트 로고 → 이미지 로고 ===== */}
       <a href="/" className="navbar-brand">
-        톡톡스
+        <img src={logo} alt="톡톡스" className="navbar-logo" />
       </a>
+      {/* ===== 변경 끝 ===== */}
 
       <nav className="navbar-menu" aria-label="주요 메뉴">
         {navigationItems.map((item) => (

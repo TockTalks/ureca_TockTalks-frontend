@@ -16,7 +16,17 @@
   color: var(--color-text);
   text-decoration: none;
   letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
 }
+
+/* ===== 추가: 텍스트 로고 → 이미지 로고 ===== */
+.navbar-logo {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+/* ===== 추가 끝 ===== */
 
 .navbar-menu {
   display: flex;
