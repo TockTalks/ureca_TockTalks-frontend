@@ -7,6 +7,7 @@ import { formatMoney, formatPercent } from '../lib/format'
 import { HISTORY_ZONE_END, usePriceStream, type PricePoint } from '../lib/priceSocket'
 import type {
   FavoriteStock,
+  PortfolioBalance,
   PortfolioSummary,
   Room,
   StockInfo,
@@ -92,29 +93,25 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
     setParticipantLoading(true)
     setParticipantError(null)
 
-    const defaultRoomRequest = requestedRoomParticipantId
-      ? Promise.resolve<Room | null>(null)
-      : api.get<Room>('/api/rooms/default')
-
-    Promise.all([api.get<PortfolioSummary[]>('/api/portfolios'), defaultRoomRequest])
-      .then(([portfolios, defaultRoom]) => {
-        if (cancelled) return
-
-        const selectedPortfolio = requestedRoomParticipantId
-          ? portfolios.find(
-              (portfolio) => portfolio.roomParticipantId === requestedRoomParticipantId,
-            )
-          : portfolios.find((portfolio) => portfolio.roomId === defaultRoom?.id)
-
-        if (!selectedPortfolio) {
-          setAvailableBalance(null)
-          setParticipantError(
-            requestedRoomParticipantId
-              ? '요청한 투자 계좌를 찾을 수 없습니다.'
-              : '기본 투자 계좌를 찾을 수 없습니다.',
+    // roomParticipantId가 URL에 이미 있으면 시세 조회가 섞인 무거운 /api/portfolios(목록)
+    // 대신, 잔고만 즉시 내려주는 경량 엔드포인트를 바로 부른다.
+    const request: Promise<{ roomParticipantId: number; balance: number }> = requestedRoomParticipantId
+      ? api.get<PortfolioBalance>(`/api/portfolios/${requestedRoomParticipantId}/balance`)
+      : api
+          .get<Room>('/api/rooms/default')
+          .then((defaultRoom) =>
+            api.get<PortfolioSummary[]>('/api/portfolios').then((portfolios) => {
+              const selectedPortfolio = portfolios.find((portfolio) => portfolio.roomId === defaultRoom.id)
+              if (!selectedPortfolio) {
+                throw new ApiError(404, '기본 투자 계좌를 찾을 수 없습니다.')
+              }
+              return selectedPortfolio
+            }),
           )
-          return
-        }
+
+    request
+      .then((selectedPortfolio) => {
+        if (cancelled) return
 
         setRoomParticipantId(selectedPortfolio.roomParticipantId)
         setAvailableBalance(selectedPortfolio.balance)
