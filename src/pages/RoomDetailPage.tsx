@@ -27,7 +27,7 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
       .get<Room>(`/api/rooms/${roomId}`)
       .then((data) => {
         setRoom(data)
-        if (data.status !== 'ongoing') {
+        if (data.status === 'closed') {
           api
             .get<FinalRanking[]>(`/api/rooms/${roomId}/rankings/final`)
             .then(setFinalRanking)
@@ -196,7 +196,7 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
               <p className="rooms-empty">
                 <a href="/login">로그인</a> 후 참가할 수 있습니다.
               </p>
-            ) : room.status !== 'ongoing' ? (
+            ) : room.status === 'closed' ? (
               finalRanking.length === 0 ? (
                 <p className="rooms-empty">종료된 방입니다.</p>
               ) : (
