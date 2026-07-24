@@ -21,6 +21,15 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
   const [finalRanking, setFinalRanking] = useState<FinalRanking[]>([])
   const [myPortfolio, setMyPortfolio] = useState<PortfolioSummary | null>(null)
   const [liveRanking, setLiveRanking] = useState<RankedEntry[]>([])
+  const [battleStarted, setBattleStarted] = useState(false)
+  const canLeaveRoom = Boolean(
+    room &&
+      !room.isDefault &&
+      room.startAt &&
+      !battleStarted &&
+      Number.isFinite(new Date(room.startAt).getTime()) &&
+      Date.now() < new Date(room.startAt).getTime(),
+  )
 
   const load = () => {
     api
@@ -47,6 +56,37 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
   }
 
   useEffect(load, [roomId, me])
+
+  useEffect(() => {
+    if (!room?.startAt) {
+      setBattleStarted(true)
+      return
+    }
+
+    const startTime = new Date(room.startAt).getTime()
+    if (!Number.isFinite(startTime)) {
+      setBattleStarted(true)
+      return
+    }
+
+    let timeoutId: number | undefined
+
+    const refreshBattleStarted = () => {
+      const remaining = startTime - Date.now()
+      if (remaining <= 0) {
+        setBattleStarted(true)
+        return
+      }
+
+      setBattleStarted(false)
+      timeoutId = window.setTimeout(refreshBattleStarted, Math.min(remaining, 60_000))
+    }
+
+    refreshBattleStarted()
+    return () => {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId)
+    }
+  }, [room?.startAt])
 
   useEffect(() => {
     if (!me || !isParticipant || room?.status !== 'ongoing') {
@@ -282,7 +322,7 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
                   )}
                 </section>
 
-                {!room.isDefault && (
+                {canLeaveRoom && (
                   <div className="room-detail-actions">
                     <button type="button" className="btn btn-default" disabled={busy} onClick={handleLeave}>
                       탈퇴하기
