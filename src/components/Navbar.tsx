@@ -70,6 +70,9 @@ function Navbar({ me, authChecked, onLogout }: NavbarProps) {
                     <a href="/admin/reports" className="navbar-admin-dropdown-item">
                       신고
                     </a>
+                    <a href="/admin/members" className="navbar-admin-dropdown-item">
+                      회원 관리
+                    </a>
                     <a href="/admin/stats" className="navbar-admin-dropdown-item">
                       통계
                     </a>
