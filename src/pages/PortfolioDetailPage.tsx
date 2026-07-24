@@ -15,10 +15,13 @@ import {
 } from '../lib/format'
 import './PortfolioPage.css'
 
+const HISTORY_PAGE_SIZE = 10 // ===== 추가: 자산 변동 히스토리 페이지당 표시 개수 =====
+
 function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number }) {
   const { me, authChecked, logout } = useAuth()
   const [detail, setDetail] = useState<PortfolioDetail | null>(null)
   const [history, setHistory] = useState<PortfolioHistoryPoint[]>([])
+  const [historyPage, setHistoryPage] = useState(0) // ===== 추가: 자산 변동 히스토리 페이징 =====
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   // ===== 추가: 자산 변동 히스토리 공유 버튼 - 클릭까지만 구현, 실제 이동 로직은 커뮤니티 담당 팀원이 연결 예정 =====
@@ -41,6 +44,7 @@ function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number 
 
     setDetail(null)
     setHistory([])
+    setHistoryPage(0) // ===== 추가 =====
     setErrorMessage(null)
 
     api
@@ -226,7 +230,10 @@ function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number 
                       </tr>
                     </thead>
                     <tbody>
-                      {history.map((h, index) => (
+                      {/* ===== 변경: 10개씩 페이징해서 표시 ===== */}
+                      {history
+                        .slice(historyPage * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE + HISTORY_PAGE_SIZE)
+                        .map((h, index) => (
                         <tr key={`${h.recordedAt}-${index}`}>
                           <td>{formatDate(h.recordedAt)}</td>
                           {/* ===== 추가: 매수는 종목/가격/수량, 매도는 종목/수량만 표시 (손익은 옆 컬럼에) ===== */}
@@ -258,6 +265,12 @@ function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number 
                       ))}
                     </tbody>
                   </table>
+                  <HistoryPager
+                    page={historyPage}
+                    totalPages={Math.ceil(history.length / HISTORY_PAGE_SIZE)}
+                    onChange={setHistoryPage}
+                  />
+                  {/* ===== 변경 끝 ===== */}
                 </div>
               )}
             </section>
@@ -267,5 +280,38 @@ function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number 
     </>
   )
 }
+
+// ===== 추가: 자산 변동 히스토리 페이지네이션 =====
+function HistoryPager({
+  page,
+  totalPages,
+  onChange,
+}: {
+  page: number
+  totalPages: number
+  onChange: (page: number) => void
+}) {
+  if (totalPages <= 1) return null
+
+  return (
+    <div className="portfolio-pager">
+      <button type="button" className="btn btn-text" disabled={page <= 0} onClick={() => onChange(page - 1)}>
+        이전
+      </button>
+      <span className="portfolio-pager-info">
+        {page + 1} / {totalPages}
+      </span>
+      <button
+        type="button"
+        className="btn btn-text"
+        disabled={page >= totalPages - 1}
+        onClick={() => onChange(page + 1)}
+      >
+        다음
+      </button>
+    </div>
+  )
+}
+// ===== 추가 끝 =====
 
 export default PortfolioDetailPage
