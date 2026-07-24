@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import Navbar from '../components/Navbar'
 import PortfolioCompositionChart from '../components/PortfolioCompositionChart' // ===== 변경: 상단 요약 게이지 → 기본방 구성 도넛 차트 =====
 import PortfolioCompositionLegendCompact from '../components/PortfolioCompositionLegendCompact' // ===== 추가: 목록 화면용 가로 범례 =====
-import ProfitRateGauge from '../components/ProfitRateGauge'
 import { api, ApiError } from '../lib/apiClient'
 import { useAuth } from '../lib/useAuth'
 import type { PortfolioDetail, PortfolioSummary } from '../lib/types'
@@ -98,24 +97,23 @@ function PortfolioPage() {
     <a
       key={p.roomParticipantId}
       href={`/portfolio/${p.roomParticipantId}`}
-      className="card room-card"
+      className="card room-card portfolio-room-summary-card"
       onMouseEnter={() => prefetchDetail(p.roomParticipantId)} // ===== 추가 =====
+      aria-label={`${p.roomName} 상세 포트폴리오 보기`}
     >
       <div className="room-card-header">
         <h3>{p.roomName}</h3>
         <span className={statusBadgeClass(p.roomStatus)}>{statusLabel(p.roomStatus)}</span>
       </div>
-      <div className="room-card-meta">
-        <span>평가자산 {formatMoney(p.totalAssetValue)}</span>
-        <span>보유 종목 {p.holdingCount}개</span>
+
+      <div className="portfolio-room-asset">
+        <span className="portfolio-room-asset-label">평가자산</span>
+        <strong>{formatMoney(p.totalAssetValue)}</strong>
       </div>
-      <div className="portfolio-card-profit">
-        <ProfitRateGauge rate={p.profitRate} size={48} />
-        <span className={profitBadgeClass(p.profitAmount)}>{formatPercent(p.profitRate)}</span>
-        <span className={`profit-amount ${p.profitAmount > 0 ? 'text-rise' : p.profitAmount < 0 ? 'text-fall' : ''}`}>
-          {formatMoney(p.profitAmount)}
-        </span>
-      </div>
+
+      <span className="portfolio-room-detail-link" aria-hidden="true">
+        상세 포트폴리오 보기 →
+      </span>
     </a>
   )
 

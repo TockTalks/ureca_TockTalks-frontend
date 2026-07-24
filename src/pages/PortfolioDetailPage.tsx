@@ -86,7 +86,11 @@ function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number 
           <>
             <div className="card room-detail-card">
               <div className="room-detail-header">
-                <h1>{detail.roomName}</h1>
+                <h1>
+                  <a href={`/rooms/${detail.roomId}`} className="portfolio-room-name-link">
+                    {detail.roomName}
+                  </a>
+                </h1>
                 <span className={statusBadgeClass(detail.roomStatus)}>{statusLabel(detail.roomStatus)}</span>
               </div>
 
