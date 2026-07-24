@@ -529,26 +529,24 @@ function StocksPage() {
         {!loading && !errorMessage && filteredStocks.length > 0 && (
           <nav className="stocks-pagination" aria-label="종목 목록 페이지">
             <div className="stocks-pagination-list">
-              {page > 1 && (
-                <>
-                  <button
-                    type="button"
-                    className="btn btn-default stocks-pagination-control"
-                    onClick={() => setPage(1)}
-                    aria-label="첫 페이지로 이동"
-                  >
-                    «
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-default stocks-pagination-control"
-                    onClick={() => setPage((current) => Math.max(1, current - 5))}
-                    aria-label="5페이지 이전으로 이동"
-                  >
-                    ‹
-                  </button>
-                </>
-              )}
+              <button
+                type="button"
+                className="btn btn-default stocks-pagination-control"
+                onClick={() => setPage(1)}
+                disabled={page <= 1}
+                aria-label="첫 페이지로 이동"
+              >
+                «
+              </button>
+              <button
+                type="button"
+                className="btn btn-default stocks-pagination-control"
+                onClick={() => setPage((current) => Math.max(1, current - 5))}
+                disabled={page <= 1}
+                aria-label="5페이지 이전으로 이동"
+              >
+                ‹
+              </button>
 
               {visiblePages.map((pageNumber) => (
                 <button
@@ -565,26 +563,24 @@ function StocksPage() {
                 </button>
               ))}
 
-              {page < totalPages && (
-                <>
-                  <button
-                    type="button"
-                    className="btn btn-default stocks-pagination-control"
-                    onClick={() => setPage((current) => Math.min(totalPages, current + 5))}
-                    aria-label="5페이지 다음으로 이동"
-                  >
-                    ›
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-default stocks-pagination-control"
-                    onClick={() => setPage(totalPages)}
-                    aria-label="마지막 페이지로 이동"
-                  >
-                    »
-                  </button>
-                </>
-              )}
+              <button
+                type="button"
+                className="btn btn-default stocks-pagination-control"
+                onClick={() => setPage((current) => Math.min(totalPages, current + 5))}
+                disabled={page >= totalPages}
+                aria-label="5페이지 다음으로 이동"
+              >
+                ›
+              </button>
+              <button
+                type="button"
+                className="btn btn-default stocks-pagination-control"
+                onClick={() => setPage(totalPages)}
+                disabled={page >= totalPages}
+                aria-label="마지막 페이지로 이동"
+              >
+                »
+              </button>
             </div>
           </nav>
         )}
