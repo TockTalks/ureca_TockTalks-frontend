@@ -109,10 +109,16 @@ function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number 
                 <span className={statusBadgeClass(detail.roomStatus)}>{statusLabel(detail.roomStatus)}</span>
               </div>
 
-              {detail.roomStatus !== 'ongoing' && (
+              {detail.roomStatus !== 'ongoing' ? (
                 <a href={`/rooms/${detail.roomId}`} className="btn btn-text">
                   이 방 최종 순위 보기 →
                 </a>
+              ) : (
+                <div className="room-detail-actions">
+                  <a href={`/stocks?roomParticipantId=${roomParticipantId}`} className="btn btn-primary">
+                    이 방에서 거래하기
+                  </a>
+                </div>
               )}
 
               {/* ===== 변경: 수익률 게이지 → 종목 구성(매입/평가) 도넛 차트, 가운데엔 여전히 수익률 표시 ===== */}

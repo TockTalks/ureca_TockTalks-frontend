@@ -88,6 +88,10 @@ export function usePriceStream(stockCode: string) {
       if (now - lastPointAtRef.current < LIVE_POINT_INTERVAL_MS) return
       lastPointAtRef.current = now
 
+      // 화면에 크게 보이는 현재가도 차트 점과 같은 주기로만 갱신한다.
+      // 틱마다(초당 3~4회) 그대로 반영하면 숫자가 너무 빨리 바뀌어 읽을 수가 없다.
+      setLatestPrice(price)
+
       const point: PricePoint = {
         position: livePosition(at),
         label: at.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
@@ -123,7 +127,6 @@ export function usePriceStream(stockCode: string) {
         if (cancelled) return
         setSnapshot(data)
         const price = Number(data.stck_prpr)
-        setLatestPrice(price)
         appendLivePoint(price)
       } catch {
         // 현재가 조회 실패는 무시하고 실시간 스트림에 맡깁니다.
@@ -143,7 +146,6 @@ export function usePriceStream(stockCode: string) {
         const price = Number(message.body)
         if (Number.isNaN(price)) return
 
-        setLatestPrice(price)
         appendLivePoint(price)
       })
     }
