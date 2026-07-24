@@ -209,7 +209,8 @@ export type AdminMember = {
   nickname: string
   provider: string
   role: string
-  status: string
+  // 회원탈퇴 상태를 관리자 화면에서 정상·차단 상태와 구분한다.
+  status: 'active' | 'blocked' | 'withdrawn'
   reportedCount: number
   createdAt: string
 }

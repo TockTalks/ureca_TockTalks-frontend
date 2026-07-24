@@ -19,6 +19,8 @@ function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
 
   const nextPath = new URLSearchParams(window.location.search).get('next')
+  // 회원탈퇴가 끝난 뒤 리다이렉트된 사용자에게 완료 상태를 안내한다.
+  const withdrawalCompleted = new URLSearchParams(window.location.search).get('withdrawn') === '1'
   const loginRequired = nextPath !== null
 
   const handleSubmit = async (e: FormEvent) => {
@@ -52,6 +54,7 @@ function LoginPage() {
       <div className="card auth-card">
         <h1>로그인</h1>
 
+        {withdrawalCompleted && <p className="alert-success">회원탈퇴가 완료되었습니다.</p>}
         {loginRequired && <p className="alert-error">로그인이 필요합니다.</p>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
