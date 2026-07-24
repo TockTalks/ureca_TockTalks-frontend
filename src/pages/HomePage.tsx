@@ -454,8 +454,8 @@ function HomePage() {
                   <ol className="ranking-list">
                     {topRanking.map((entry) => (
                       <li key={entry.memberId} className="ranking-row ranking-list-item">
-                        <span className={`ranking-rank ${entry.rank <= 3 ? `ranking-rank-${entry.rank}` : ''}`}>
-                          {entry.rank}
+                        <span className={`ranking-rank ${entry.rank !== null && entry.rank <= 3 ? `ranking-rank-${entry.rank}` : ''}`}>
+                          {entry.rank ?? '-'}
                         </span>
                         <span className="ranking-nickname">{entry.nickname}</span>
                         <span className="ranking-balance">{formatMoney(entry.balance)}</span>
@@ -465,8 +465,8 @@ function HomePage() {
 
                   {myRanking && (
                     <div className="ranking-row ranking-my-rank">
-                      <span className={`ranking-rank ${myRanking.rank <= 3 ? `ranking-rank-${myRanking.rank}` : ''}`}>
-                        {myRanking.rank}
+                      <span className={`ranking-rank ${myRanking.rank !== null && myRanking.rank <= 3 ? `ranking-rank-${myRanking.rank}` : ''}`}>
+                        {myRanking.rank ?? '-'}
                       </span>
                       <span className="ranking-nickname">{myRanking.nickname}</span>
                       <span className="ranking-balance">{formatMoney(myRanking.balance)}</span>

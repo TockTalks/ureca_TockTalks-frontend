@@ -17,6 +17,7 @@ export type RoomRanking = {
   memberId: number
   nickname: string
   balance: number
+  hasTraded: boolean
 }
 
 export type FinalRanking = {
