@@ -201,6 +201,13 @@
   padding: 2px 8px;
 }
 
+.admin-withdraw-btn {
+  color: var(--color-error);
+  height: auto;
+  padding: 2px 8px;
+  margin-left: 4px;
+}
+
 .admin-pager {
   display: flex;
   align-items: center;

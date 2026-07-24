@@ -21,6 +21,7 @@ function AdminMembersPage() {
   const [error, setError] = useState<string | null>(null)
   const [resetBusyId, setResetBusyId] = useState<number | null>(null)
   const [resetDoneIds, setResetDoneIds] = useState<Set<number>>(new Set())
+  const [withdrawBusyId, setWithdrawBusyId] = useState<number | null>(null)
 
   useEffect(() => {
     if (!authChecked) return
@@ -76,6 +77,24 @@ function AdminMembersPage() {
       setError(err instanceof ApiError ? err.message : '초기화 처리에 실패했습니다.')
     } finally {
       setResetBusyId(null)
+    }
+  }
+
+  const handleWithdraw = async (member: AdminMember) => {
+    const confirmed = window.confirm(
+      `${member.nickname}(${member.email})님을 강제 탈퇴시킬까요?\n이메일/닉네임이 익명화되고 참가 중인 방에서도 제외됩니다. 되돌릴 수 없습니다.`,
+    )
+    if (!confirmed) return
+
+    setWithdrawBusyId(member.id)
+    setError(null)
+    try {
+      await api.post(`/api/admin/members/${member.id}/withdraw`)
+      setMembers((prev) => prev.map((m) => (m.id === member.id ? { ...m, status: 'withdrawn' } : m)))
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '탈퇴 처리에 실패했습니다.')
+    } finally {
+      setWithdrawBusyId(null)
     }
   }
 
@@ -145,6 +164,16 @@ function AdminMembersPage() {
                         >
                           {resetDoneIds.has(member.id) ? '초기화됨' : '기본방 초기화'}
                         </button>
+                        {member.role !== 'admin' && (
+                          <button
+                            type="button"
+                            className="btn btn-text admin-withdraw-btn"
+                            disabled={withdrawBusyId === member.id || member.status === 'withdrawn'}
+                            onClick={() => handleWithdraw(member)}
+                          >
+                            {member.status === 'withdrawn' ? '탈퇴됨' : '탈퇴시키기'}
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
