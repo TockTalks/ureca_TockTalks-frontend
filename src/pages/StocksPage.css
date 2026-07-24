@@ -324,17 +324,45 @@
 
 .stocks-pagination {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
+  overflow-x: auto;
   padding: 8px 0;
 }
 
-.stocks-pagination-status {
-  min-width: 64px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--color-text-secondary);
+.stocks-pagination-list {
+  display: flex;
+  min-width: max-content;
+  align-items: center;
+  margin: 0 auto;
+  padding: 0 1px;
+}
+
+.stocks-pagination .btn {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 44px;
+  height: 44px;
+  margin-left: -1px;
+  padding: 4px 12px;
+  border-radius: 0;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stocks-pagination .btn:first-child {
+  margin-left: 0;
+}
+
+.stocks-pagination-control {
+  font-size: 24px !important;
+  line-height: 1;
+}
+
+.stocks-pagination-page-active {
+  z-index: 1;
+  color: var(--color-primary) !important;
+  background: #e6f4ff !important;
+  border-color: var(--color-primary) !important;
+  font-weight: 600;
 }
 
 @media (max-width: 576px) {

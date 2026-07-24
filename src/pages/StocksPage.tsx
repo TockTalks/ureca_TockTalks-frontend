@@ -6,6 +6,7 @@ import { useAuth } from '../lib/useAuth'
 import './StocksPage.css'
 
 const PAGE_SIZE = 12
+const PAGE_WINDOW_SIZE = 10
 const MULTI_PRICE_CHUNK_SIZE = 30
 const PRICE_RETRY_DELAY_MS = 500
 const PRICE_MAX_ATTEMPTS = 3
@@ -59,7 +60,19 @@ function StocksPage() {
   const [favoritePrices, setFavoritePrices] = useState<Record<string, number | null>>({})
   const [favoriteSubmittingCode, setFavoriteSubmittingCode] = useState<string | null>(null)
   const roomParticipantId = useMemo(getRoomParticipantId, [])
-  const stockLinkSuffix = roomParticipantId ? `?roomParticipantId=${roomParticipantId}` : ''
+  const stockLinkSuffix = useMemo(() => {
+    const params = new URLSearchParams()
+
+    if (roomParticipantId) {
+      params.set('roomParticipantId', roomParticipantId)
+    }
+    if (page > 1) {
+      params.set('fromPage', String(page))
+    }
+
+    const queryString = params.toString()
+    return queryString ? `?${queryString}` : ''
+  }, [page, roomParticipantId])
 
   useEffect(() => {
     api
@@ -199,6 +212,13 @@ function StocksPage() {
   }, [changeRateSortDirection, filteredStocks, quotes])
 
   const totalPages = Math.max(1, Math.ceil(sortedStocks.length / PAGE_SIZE))
+  const visiblePages = useMemo(() => {
+    const visibleCount = Math.min(PAGE_WINDOW_SIZE, totalPages)
+    const maximumStart = Math.max(1, totalPages - visibleCount + 1)
+    const start = Math.min(Math.max(1, page - 4), maximumStart)
+
+    return Array.from({ length: visibleCount }, (_, index) => start + index)
+  }, [page, totalPages])
 
   useEffect(() => {
     if (loading) return
@@ -508,27 +528,64 @@ function StocksPage() {
 
         {!loading && !errorMessage && filteredStocks.length > 0 && (
           <nav className="stocks-pagination" aria-label="종목 목록 페이지">
-            <button
-              type="button"
-              className="btn btn-default"
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-              disabled={page <= 1}
-            >
-              이전
-            </button>
+            <div className="stocks-pagination-list">
+              {page > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-default stocks-pagination-control"
+                    onClick={() => setPage(1)}
+                    aria-label="첫 페이지로 이동"
+                  >
+                    «
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-default stocks-pagination-control"
+                    onClick={() => setPage((current) => Math.max(1, current - 5))}
+                    aria-label="5페이지 이전으로 이동"
+                  >
+                    ‹
+                  </button>
+                </>
+              )}
 
-            <span className="stocks-pagination-status">
-              {page} / {totalPages}
-            </span>
+              {visiblePages.map((pageNumber) => (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  className={`btn btn-default stocks-pagination-page ${
+                    pageNumber === page ? 'stocks-pagination-page-active' : ''
+                  }`}
+                  onClick={() => setPage(pageNumber)}
+                  aria-label={`${pageNumber}페이지로 이동`}
+                  aria-current={pageNumber === page ? 'page' : undefined}
+                >
+                  {pageNumber}
+                </button>
+              ))}
 
-            <button
-              type="button"
-              className="btn btn-default"
-              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-              disabled={page >= totalPages}
-            >
-              다음
-            </button>
+              {page < totalPages && (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-default stocks-pagination-control"
+                    onClick={() => setPage((current) => Math.min(totalPages, current + 5))}
+                    aria-label="5페이지 다음으로 이동"
+                  >
+                    ›
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-default stocks-pagination-control"
+                    onClick={() => setPage(totalPages)}
+                    aria-label="마지막 페이지로 이동"
+                  >
+                    »
+                  </button>
+                </>
+              )}
+            </div>
           </nav>
         )}
       </main>
