@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar'
 import { api, ApiError } from '../lib/apiClient'
 import { useAuth } from '../lib/useAuth'
 import type { FinalRanking, PortfolioSummary, Room, RoomRanking } from '../lib/types'
+import { toRankedEntries, type RankedEntry } from '../lib/ranking'
 import { formatDate, formatMoney, formatPercent, statusBadgeClass, statusLabel } from '../lib/format'
 import './RoomPages.css'
 import './RankingPage.css'
@@ -19,7 +20,7 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
   const [busy, setBusy] = useState(false)
   const [finalRanking, setFinalRanking] = useState<FinalRanking[]>([])
   const [myPortfolio, setMyPortfolio] = useState<PortfolioSummary | null>(null)
-  const [liveRanking, setLiveRanking] = useState<RoomRanking[]>([])
+  const [liveRanking, setLiveRanking] = useState<RankedEntry[]>([])
 
   const load = () => {
     api
@@ -68,7 +69,7 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
     api
       .get<RoomRanking[]>(`/api/rooms/${roomId}/ranking`)
       .then((data) => {
-        if (!cancelled) setLiveRanking(data)
+        if (!cancelled) setLiveRanking(toRankedEntries(data))
       })
       .catch(() => {
         if (!cancelled) setLiveRanking([])
@@ -270,8 +271,8 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
                             me?.id === entry.memberId ? 'ranking-page-item-me' : ''
                           }`}
                         >
-                          <span className={`ranking-rank ${entry.rank <= 3 ? `ranking-rank-${entry.rank}` : ''}`}>
-                            {entry.rank}
+                          <span className={`ranking-rank ${entry.rank !== null && entry.rank <= 3 ? `ranking-rank-${entry.rank}` : ''}`}>
+                            {entry.rank ?? '-'}
                           </span>
                           <span className="ranking-nickname">{entry.nickname}</span>
                           <span className="ranking-balance">{formatMoney(entry.balance)}</span>
