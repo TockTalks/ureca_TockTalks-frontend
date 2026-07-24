@@ -72,7 +72,7 @@ export type PortfolioSummary = {
   profitAmount: number
   profitRate: number
   holdingCount: number
-  isDefault: boolean // ===== 추가: 기본방(로비) 여부 =====
+  isDefault: boolean 
 }
 
 export type PortfolioHolding = {
@@ -197,4 +197,79 @@ export type AdminMember = {
   status: string
   reportedCount: number
   createdAt: string
+}
+
+export type DashboardSummaryResponse = {
+  totalMemberCount: number
+  dailyActiveUserCount: number
+  weeklyActiveUserCount: number
+  totalRoomCount: number
+  recruitingRoomCount: number
+  ongoingRoomCount: number
+  closedRoomCount: number
+  currentOnlineCount: number
+}
+
+export type DailyMemberTradeTrend = {
+  date: string
+  newMemberCount: number
+  transactionCount: number
+}
+
+export type PopularStockResponse = {
+  stockCode: string
+  stockName: string
+  tradeCount: number
+}
+
+export type DashboardMembersTradesResponse = {
+  dailyTrend: DailyMemberTradeTrend[]
+  popularStocks: PopularStockResponse[]
+}
+
+export type ReturnRateDistributionBucket = {
+  label: string
+  count: number
+}
+
+export type TopUserResponse = {
+  memberId: number
+  nickname: string
+  roomId: number
+  returnRate: number
+}
+
+export type DashboardRoomsRanksResponse = {
+  totalRoomCount: number
+  recruitingRoomCount: number
+  ongoingRoomCount: number
+  closedRoomCount: number
+  totalParticipantCount: number
+  activeParticipantCount: number
+  returnRateDistribution: ReturnRateDistributionBucket[]
+  topUsers: TopUserResponse[]
+}
+
+export type DailyCommunityTrend = {
+  date: string
+  newPostCount: number
+  newCommentCount: number
+}
+
+export type PopularPostResponse = {
+  postId: number
+  content: string
+  likeCount: number
+  commentCount: number
+}
+
+export type ReportStatusCount = {
+  status: ReportStatus
+  count: number
+}
+
+export type DashboardCommunityResponse = {
+  dailyTrend: DailyCommunityTrend[]
+  popularPosts: PopularPostResponse[]
+  reportStatusCounts: ReportStatusCount[]
 }

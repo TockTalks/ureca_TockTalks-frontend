@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import Navbar from '../components/Navbar'
 import { api } from '../lib/apiClient'
 import { formatMoney, formatPercent } from '../lib/format'
-import { usePriceStream, type PricePoint } from '../lib/priceSocket'
+import { HISTORY_ZONE_END, usePriceStream, type PricePoint } from '../lib/priceSocket'
 import type { FavoriteStock, PortfolioDetail, PortfolioHolding, PortfolioSummary } from '../lib/types'
 import { useAuth } from '../lib/useAuth'
 import { useDefaultRoomRanking } from '../lib/useRanking'
@@ -68,7 +68,7 @@ function PriceTooltip({ active, payload }: PriceTooltipProps) {
 
   return (
     <div className="price-tooltip">
-      <span className="price-tooltip-time">{point.time}</span>
+      <span className="price-tooltip-time">{point.label}</span>
       <span className="price-tooltip-value">{point.price.toLocaleString('ko-KR')}원</span>
     </div>
   )
@@ -197,8 +197,8 @@ function HomePage() {
     }
   }, [authChecked, me])
 
-  const { points, latestPrice, snapshot } = usePriceStream(stockCode)
-
+  const { points, latestPrice, snapshot, xAxisTicks } = usePriceStream(stockCode)
+  
   const changeAmount = snapshot ? Number(snapshot.prdy_vrss) : null
   const changeRate = snapshot ? Number(snapshot.prdy_ctrt) : null
   const isUp = snapshot?.prdy_vrss_sign === '1' || snapshot?.prdy_vrss_sign === '2'
@@ -271,15 +271,40 @@ function HomePage() {
             {points.length > 0 ? (
               <div className="chart-container" aria-label={`${stockName} 실시간 가격 그래프`}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={points} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <AreaChart data={points} margin={{ top: 8, right: 8, left: 4, bottom: 20 }}>
                     <defs>
                       <linearGradient id="priceFill" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor={CHART_LINE_COLOR} stopOpacity={0.22} />
                         <stop offset="100%" stopColor={CHART_LINE_COLOR} stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <XAxis dataKey="time" hide />
-                    <YAxis domain={['auto', 'auto']} hide />
+                    <XAxis
+                      type="number"
+                      dataKey="position"
+                      domain={[0, 100]}
+                      ticks={xAxisTicks.map((tick) => tick.position)}
+                      tickFormatter={(value: number) =>
+                        xAxisTicks.find((tick) => tick.position === value)?.label ?? ''
+                      }
+                      tick={{ fontSize: 10, fill: 'var(--color-text-secondary, #00000073)' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      domain={['auto', 'auto']}
+                      tickCount={3}
+                      width={56}
+                      tick={{ fontSize: 10, fill: 'var(--color-text-secondary, #00000073)' }}
+                      tickFormatter={(value: number) => value.toLocaleString('ko-KR')}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <ReferenceLine
+                      x={HISTORY_ZONE_END}
+                      stroke={CHART_LINE_COLOR}
+                      strokeDasharray="4 3"
+                      label={{ value: '오늘', position: 'insideTopRight', fontSize: 10, fill: CHART_LINE_COLOR }}
+                    />
                     <Tooltip
                       content={(props) => (
                         <PriceTooltip
