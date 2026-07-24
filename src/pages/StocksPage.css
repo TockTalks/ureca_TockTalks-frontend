@@ -352,6 +352,19 @@
   margin-left: 0;
 }
 
+.stocks-pagination .btn:not(:disabled):hover,
+.stocks-pagination .btn:not(:disabled):focus-visible {
+  z-index: 2;
+}
+
+.stocks-pagination .btn:disabled,
+.stocks-pagination .btn:disabled:hover {
+  cursor: default;
+  color: var(--color-text-disabled);
+  background: var(--color-bg-layout);
+  border-color: var(--color-border);
+}
+
 .stocks-pagination-control {
   font-size: 24px !important;
   line-height: 1;
