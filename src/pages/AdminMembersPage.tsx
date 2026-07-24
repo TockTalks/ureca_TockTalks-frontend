@@ -120,14 +120,17 @@ function AdminMembersPage() {
                 </thead>
                 <tbody>
                   {members.map((member) => (
-                    <tr key={member.id} className={member.status === 'blocked' ? 'admin-member-row-blocked' : ''}>
+                    <tr key={member.id} className={member.status !== 'active' ? 'admin-member-row-blocked' : ''}>
                       <td>{member.id}</td>
                       <td>{member.nickname}</td>
                       <td>{member.email}</td>
                       <td>{formatReportDate(member.createdAt)}</td>
                       <td>
+                        {/* 회원탈퇴 상태를 정상 회원으로 표시하지 않는다. */}
                         {member.status === 'blocked' ? (
                           <span className="badge badge-default">차단됨</span>
+                        ) : member.status === 'withdrawn' ? (
+                          <span className="badge badge-default">탈퇴함</span>
                         ) : (
                           '정상'
                         )}
@@ -137,7 +140,7 @@ function AdminMembersPage() {
                         <button
                           type="button"
                           className="btn btn-text admin-reset-btn"
-                          disabled={resetBusyId === member.id}
+                          disabled={resetBusyId === member.id || member.status !== 'active'}
                           onClick={() => handleReset(member)}
                         >
                           {resetDoneIds.has(member.id) ? '초기화됨' : '기본방 초기화'}

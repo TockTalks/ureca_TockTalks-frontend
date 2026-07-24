@@ -309,21 +309,24 @@ function AdminReportsPage() {
                   </thead>
                   <tbody>
                     {members.map((member) => (
-                      <tr key={member.id} className={member.status === 'blocked' ? 'admin-member-row-blocked' : ''}>
+                      <tr key={member.id} className={member.status !== 'active' ? 'admin-member-row-blocked' : ''}>
                         <td>
                           <input
                             type="checkbox"
                             checked={selectedMemberIds.has(member.id)}
                             onChange={() => toggleSelectMember(member.id)}
-                            disabled={member.status === 'blocked'}
+                            disabled={member.status !== 'active'}
                             aria-label={`회원 ${member.id} 선택`}
                           />
                         </td>
                         <td>{member.id}</td>
                         <td>{member.reportedCount}</td>
                         <td>
+                          {/* 회원탈퇴 상태에서는 신고 차단 작업을 다시 수행하지 않는다. */}
                           {member.status === 'blocked' ? (
                             <span className="badge badge-default">차단됨</span>
+                          ) : member.status === 'withdrawn' ? (
+                            <span className="badge badge-default">탈퇴함</span>
                           ) : (
                             <button
                               type="button"

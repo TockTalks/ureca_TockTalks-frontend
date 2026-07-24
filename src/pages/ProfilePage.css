@@ -40,3 +40,48 @@
   color: var(--color-success, #389e0d);
   font-size: 13px;
 }
+
+/* 회원탈퇴 영역은 일반 수정 기능과 시각적으로 구분한다. */
+.profile-withdrawal-card {
+  border-color: #ffccc7;
+}
+
+.profile-withdrawal-card h3 {
+  color: var(--color-error);
+}
+
+.profile-withdrawal-description {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.profile-withdrawal-open,
+.profile-withdrawal-submit {
+  color: #fff;
+  background: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.profile-withdrawal-open:hover,
+.profile-withdrawal-submit:hover {
+  background: #ff7875;
+  border-color: #ff7875;
+}
+
+.profile-withdrawal-open:disabled,
+.profile-withdrawal-submit:disabled {
+  color: var(--color-text-disabled);
+  background: var(--color-bg-layout);
+  border-color: var(--color-border);
+}
+
+.profile-withdrawal-form {
+  padding-top: 4px;
+  border-top: 1px solid #ffccc7;
+}
+
+.profile-withdrawal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

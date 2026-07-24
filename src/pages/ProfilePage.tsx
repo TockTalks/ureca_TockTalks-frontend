@@ -6,9 +6,11 @@ import { useAuth } from '../lib/useAuth'
 import './ProfilePage.css'
 
 const PROFILE_MESSAGE_KEY = 'tocktalks_profile_message'
+const WITHDRAWAL_CONFIRMATION = '회원탈퇴'
 
 function ProfilePage() {
   const { me, authChecked, logout } = useAuth()
+  const isKakao = me?.provider === 'kakao'
 
   const [nickname, setNickname] = useState('')
   const [nicknameMessage, setNicknameMessage] = useState<string | null>(() => {
@@ -25,6 +27,13 @@ function ProfilePage() {
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null)
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordSubmitting, setPasswordSubmitting] = useState(false)
+
+  // 회원탈퇴 입력과 요청 상태는 다른 프로필 수정 상태와 분리해 오조작을 방지한다.
+  const [withdrawalOpen, setWithdrawalOpen] = useState(false)
+  const [withdrawalConfirmation, setWithdrawalConfirmation] = useState('')
+  const [withdrawalPassword, setWithdrawalPassword] = useState('')
+  const [withdrawalError, setWithdrawalError] = useState<string | null>(null)
+  const [withdrawalSubmitting, setWithdrawalSubmitting] = useState(false)
 
   useEffect(() => {
     if (authChecked && !me) {
@@ -85,9 +94,36 @@ function ProfilePage() {
     }
   }
 
-  if (!me) return null
+  const handleWithdrawalSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    setWithdrawalError(null)
 
-  const isKakao = me.provider === 'kakao'
+    if (withdrawalConfirmation !== WITHDRAWAL_CONFIRMATION) {
+      setWithdrawalError(`확인 문구로 '${WITHDRAWAL_CONFIRMATION}'를 정확히 입력해 주세요.`)
+      return
+    }
+    if (!isKakao && !withdrawalPassword) {
+      setWithdrawalError('현재 비밀번호를 입력해 주세요.')
+      return
+    }
+    if (!window.confirm('회원탈퇴 후에는 현재 계정과 투자 기록을 다시 이용할 수 없습니다. 탈퇴할까요?')) {
+      return
+    }
+
+    setWithdrawalSubmitting(true)
+    try {
+      await api.del('/api/auth/me', {
+        currentPassword: isKakao ? null : withdrawalPassword,
+      })
+      logout()
+      window.location.replace('/login?withdrawn=1')
+    } catch (err) {
+      setWithdrawalError(err instanceof ApiError ? err.message : '회원탈퇴에 실패했습니다.')
+      setWithdrawalSubmitting(false)
+    }
+  }
+
+  if (!me) return null
 
   return (
     <>
@@ -184,6 +220,84 @@ function ProfilePage() {
             </form>
           </div>
         )}
+
+        {/* 회원탈퇴: 기존 자산·거래 기록은 보존되지만 계정은 익명화되어 다시 접근할 수 없다. */}
+        <div className="card profile-card profile-withdrawal-card">
+          <h3>회원탈퇴</h3>
+          <p className="profile-withdrawal-description">
+            탈퇴하면 진행 중인 방과 랭킹에서 제외됩니다. 재가입하더라도 기존 자산은 복구되지 않으며
+            새 계정으로 시작합니다. 종료된 방의 최종 기록은 익명으로 보존됩니다.
+          </p>
+
+          {!withdrawalOpen ? (
+            <button
+              type="button"
+              className="btn profile-withdrawal-open"
+              onClick={() => setWithdrawalOpen(true)}
+            >
+              회원탈퇴
+            </button>
+          ) : (
+            <form className="auth-form profile-withdrawal-form" onSubmit={handleWithdrawalSubmit}>
+              {!isKakao && (
+                <label className="field">
+                  <span className="field-label">현재 비밀번호</span>
+                  <input
+                    type="password"
+                    className="input"
+                    value={withdrawalPassword}
+                    onChange={(e) => setWithdrawalPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                  />
+                </label>
+              )}
+
+              <label className="field">
+                <span className="field-label">
+                  확인을 위해 <strong>{WITHDRAWAL_CONFIRMATION}</strong>를 입력해 주세요.
+                </span>
+                <input
+                  type="text"
+                  className="input"
+                  value={withdrawalConfirmation}
+                  onChange={(e) => setWithdrawalConfirmation(e.target.value)}
+                  required
+                  autoComplete="off"
+                />
+              </label>
+
+              {withdrawalError && <p className="alert-error">{withdrawalError}</p>}
+
+              <div className="profile-withdrawal-actions">
+                <button
+                  type="button"
+                  className="btn btn-default"
+                  disabled={withdrawalSubmitting}
+                  onClick={() => {
+                    setWithdrawalOpen(false)
+                    setWithdrawalPassword('')
+                    setWithdrawalConfirmation('')
+                    setWithdrawalError(null)
+                  }}
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="btn profile-withdrawal-submit"
+                  disabled={
+                    withdrawalSubmitting
+                    || withdrawalConfirmation !== WITHDRAWAL_CONFIRMATION
+                    || (!isKakao && !withdrawalPassword)
+                  }
+                >
+                  {withdrawalSubmitting ? '탈퇴 처리 중…' : '회원탈퇴 확인'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       </main>
     </>
   )
