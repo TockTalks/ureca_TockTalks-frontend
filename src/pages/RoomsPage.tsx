@@ -9,11 +9,13 @@ import './RoomPages.css'
 
 function RoomsPage() {
   const { me, authChecked, logout } = useAuth()
+  const isAdmin = me?.role === 'admin'
   const [publicRooms, setPublicRooms] = useState<Room[]>([])
   const [myRooms, setMyRooms] = useState<Room[]>([])
   const [inviteCode, setInviteCode] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [joiningRoomId, setJoiningRoomId] = useState<number | null>(null)
+  const [deletingRoomId, setDeletingRoomId] = useState<number | null>(null)
 
   const loadPublicRooms = () => {
     api.get<Room[]>('/api/rooms').then(setPublicRooms).catch(() => setPublicRooms([]))
@@ -56,6 +58,21 @@ function RoomsPage() {
       loadMyRooms()
     } catch (err) {
       setErrorMessage(err instanceof ApiError ? err.message : '참가에 실패했습니다.')
+    }
+  }
+
+  const handleDelete = async (roomId: number) => {
+    if (!window.confirm('방을 정말로 삭제하시겠습니까?')) return
+    setErrorMessage(null)
+    setDeletingRoomId(roomId)
+    try {
+      await api.del(`/api/admin/rooms/${roomId}`)
+      loadPublicRooms()
+      loadMyRooms()
+    } catch (err) {
+      setErrorMessage(err instanceof ApiError ? err.message : '삭제에 실패했습니다.')
+    } finally {
+      setDeletingRoomId(null)
     }
   }
 
@@ -125,6 +142,9 @@ function RoomsPage() {
                   joined={myRoomIds.has(room.id)}
                   onJoin={me ? () => handleJoin(room.id) : undefined}
                   joining={joiningRoomId === room.id}
+                  isAdmin={isAdmin}
+                  onDelete={() => handleDelete(room.id)}
+                  deleting={deletingRoomId === room.id}
                 />
               ))}
             </div>
@@ -140,12 +160,21 @@ function RoomCard({
   joined,
   onJoin,
   joining,
+  isAdmin,
+  onDelete,
+  deleting,
 }: {
   room: Room
   joined: boolean
   onJoin?: () => void
   joining?: boolean
+  isAdmin?: boolean
+  onDelete?: () => void
+  deleting?: boolean
 }) {
+  const showJoinButton = !joined && onJoin
+  const showDeleteButton = isAdmin && onDelete && !room.isDefault
+
   return (
     <a href={`/rooms/${room.id}`} className="card room-card">
       <div className="room-card-header">
@@ -159,19 +188,34 @@ function RoomCard({
           {room.maxParticipants ? ` / ${room.maxParticipants}` : ''}명
         </span>
       </div>
-      {!joined && onJoin && (
+      {(showJoinButton || showDeleteButton) && (
         <div className="room-card-actions">
-          <button
-            type="button"
-            className="btn btn-default"
-            disabled={joining}
-            onClick={(e) => {
-              e.preventDefault()
-              onJoin()
-            }}
-          >
-            {joining ? '참가 중…' : '참가하기'}
-          </button>
+          {showJoinButton && (
+            <button
+              type="button"
+              className="btn btn-default"
+              disabled={joining}
+              onClick={(e) => {
+                e.preventDefault()
+                onJoin!()
+              }}
+            >
+              {joining ? '참가 중…' : '참가하기'}
+            </button>
+          )}
+          {showDeleteButton && (
+            <button
+              type="button"
+              className="btn btn-text room-delete-btn"
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault()
+                onDelete!()
+              }}
+            >
+              {deleting ? '삭제 중…' : '삭제'}
+            </button>
+          )}
         </div>
       )}
     </a>
