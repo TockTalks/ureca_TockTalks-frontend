@@ -8,6 +8,7 @@ import KakaoCallback from './pages/KakaoCallback.tsx'
 import RoomsPage from './pages/RoomsPage.tsx'
 import CreateRoomPage from './pages/CreateRoomPage.tsx'
 import RoomDetailPage from './pages/RoomDetailPage.tsx'
+import RoomHistoryPage from './pages/RoomHistoryPage.tsx'
 import PortfolioPage from './pages/PortfolioPage.tsx'
 import PortfolioDetailPage from './pages/PortfolioDetailPage.tsx'
 import StocksPage from './pages/StocksPage.tsx'
@@ -36,6 +37,8 @@ function resolvePage() {
       return <RoomsPage />
     case '/rooms/new':
       return <CreateRoomPage />
+    case '/rooms/history':
+      return <RoomHistoryPage />
     case '/portfolio':
       return <PortfolioPage />
     case '/stocks':
