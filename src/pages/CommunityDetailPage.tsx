@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import Navbar from '../components/Navbar'
+import TradeCertificateCard from '../components/TradeCertificateCard'
 import { api, ApiError } from '../lib/apiClient'
 import { useAuth } from '../lib/useAuth'
 import type { CommunityComment, Page, Post } from '../lib/types'
-import { formatDate } from '../lib/format'
+import { formatDate, postCertificateLabel } from '../lib/format'
 import './CommunityPages.css'
 
 function CommunityDetailPage({ postId }: { postId: number }) {
@@ -190,8 +191,6 @@ function CommunityDetailPage({ postId }: { postId: number }) {
     }
   }
 
-  const profitPositive = (post?.profitRate ?? 0) >= 0
-
   return (
     <>
       <Navbar me={me} authChecked={authChecked} onLogout={logout} />
@@ -217,10 +216,7 @@ function CommunityDetailPage({ postId }: { postId: number }) {
             </div>
 
             {!isEditingPost && post.hasCertificate && (
-              <span className={`badge ${profitPositive ? 'badge-success' : 'badge-danger'}`}>
-                {post.stockCode} {profitPositive ? '+' : ''}
-                {post.profitRate}%
-              </span>
+              <TradeCertificateCard label={postCertificateLabel(post)} rate={post.profitRate ?? 0} amount={post.profitAmount ?? 0} />
             )}
 
             {errorMessage && <p className="alert-error">{errorMessage}</p>}
