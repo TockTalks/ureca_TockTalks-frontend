@@ -200,6 +200,10 @@
   text-align: left;
 }
 
+.comment-item:not(:first-child) {
+  border-top: 1px solid var(--color-split);
+}
+
 .comment-item-header {
   display: flex;
   align-items: center;
