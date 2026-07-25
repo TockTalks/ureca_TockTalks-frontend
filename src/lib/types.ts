@@ -205,9 +205,11 @@ export type ReportStatus = 'pending' | 'rejected' | 'deleted'
 export type Report = {
   id: number
   reporterId: number
+  reporterNickname: string | null
   targetType: ReportTargetType
   targetId: number
   targetMemberId: number
+  targetMemberNickname: string | null
   reason: string
   targetContent: string | null
   status: ReportStatus

@@ -138,15 +138,15 @@ function AdminReportsPage() {
     })
   }
 
-  const handleBlockOne = async (memberId: number) => {
-    if (!window.confirm(`회원 ${memberId}을(를) 차단할까요?`)) return
+  const handleBlockOne = async (member: AdminMember) => {
+    if (!window.confirm(`${member.nickname}님을 차단할까요?`)) return
     setBlockBusy(true)
     setMemberError(null)
     try {
-      await api.post(`/api/admin/members/${memberId}/block`)
+      await api.post(`/api/admin/members/${member.id}/block`)
       setSelectedMemberIds((prev) => {
         const next = new Set(prev)
-        next.delete(memberId)
+        next.delete(member.id)
         return next
       })
       loadMembers(memberPage)
@@ -231,7 +231,9 @@ function AdminReportsPage() {
                       >
                         <span className="badge badge-info">{targetTypeLabel(report.targetType)}</span>
                         <span className="admin-report-reason">{report.reason}</span>
-                        <span className="admin-report-target">작성자 {report.targetMemberId}</span>
+                        <span className="admin-report-target">
+                          작성자 {report.targetMemberNickname ?? `#${report.targetMemberId}`}
+                        </span>
                         <span className="post-card-date">{formatReportDate(report.createdAt)}</span>
                         {tab === 'history' && (
                           <span className={`badge ${reportStatusBadgeClass(report.status)}`}>
@@ -302,7 +304,7 @@ function AdminReportsPage() {
                   <thead>
                     <tr>
                       <th></th>
-                      <th>회원 ID</th>
+                      <th>닉네임</th>
                       <th>신고 누적</th>
                       <th></th>
                     </tr>
@@ -316,10 +318,10 @@ function AdminReportsPage() {
                             checked={selectedMemberIds.has(member.id)}
                             onChange={() => toggleSelectMember(member.id)}
                             disabled={member.status !== 'active'}
-                            aria-label={`회원 ${member.id} 선택`}
+                            aria-label={`${member.nickname} 선택`}
                           />
                         </td>
-                        <td>{member.id}</td>
+                        <td>{member.nickname}</td>
                         <td>{member.reportedCount}</td>
                         <td>
                           {/* 회원탈퇴 상태에서는 신고 차단 작업을 다시 수행하지 않는다. */}
@@ -332,7 +334,7 @@ function AdminReportsPage() {
                               type="button"
                               className="btn btn-text admin-block-btn"
                               disabled={blockBusy}
-                              onClick={() => handleBlockOne(member.id)}
+                              onClick={() => handleBlockOne(member)}
                             >
                               차단
                             </button>
