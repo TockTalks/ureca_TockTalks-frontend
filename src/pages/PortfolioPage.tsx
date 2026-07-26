@@ -5,7 +5,7 @@ import PortfolioCompositionLegendCompact from '../components/PortfolioCompositio
 import { api, ApiError } from '../lib/apiClient'
 import { useAuth } from '../lib/useAuth'
 import type { PortfolioDetail, PortfolioSummary } from '../lib/types'
-import { formatMoney, formatPercent, profitBadgeClass, statusBadgeClass, statusLabel } from '../lib/format'
+import { formatMoney, formatPercent, profitBadgeClass, profitTextClass, statusBadgeClass, statusLabel } from '../lib/format'
 import './PortfolioPage.css'
 
 function PortfolioPage() {
@@ -106,10 +106,33 @@ function PortfolioPage() {
         <span className={statusBadgeClass(p.roomStatus)}>{statusLabel(p.roomStatus)}</span>
       </div>
 
-      <div className="portfolio-room-asset">
-        <span className="portfolio-room-asset-label">평가자산</span>
-        <strong>{formatMoney(p.totalAssetValue)}</strong>
-      </div>
+      {/* ===== 변경: 종료된 방은 최종 등수/총 인원수 · 최종 수익률 · 평가자산 세 줄로 표시 ===== */}
+      {p.roomStatus === 'closed' ? (
+        <div className="portfolio-room-final-stats">
+          <div className="portfolio-room-stat-row">
+            <span className="portfolio-room-asset-label">최종 등수</span>
+            <strong>
+              {p.finalRank != null && p.totalParticipantCount != null
+                ? `${p.finalRank}위 / ${p.totalParticipantCount}명`
+                : '-'}
+            </strong>
+          </div>
+          <div className="portfolio-room-stat-row">
+            <span className="portfolio-room-asset-label">최종 수익률</span>
+            <strong className={profitTextClass(p.profitAmount)}>{formatPercent(p.profitRate)}</strong>
+          </div>
+          <div className="portfolio-room-stat-row">
+            <span className="portfolio-room-asset-label">평가자산</span>
+            <strong>{formatMoney(p.totalAssetValue)}</strong>
+          </div>
+        </div>
+      ) : (
+        <div className="portfolio-room-asset">
+          <span className="portfolio-room-asset-label">평가자산</span>
+          <strong>{formatMoney(p.totalAssetValue)}</strong>
+        </div>
+      )}
+      {/* ===== 변경 끝 ===== */}
 
       <span className="portfolio-room-detail-link" aria-hidden="true">
         상세 포트폴리오 보기 →

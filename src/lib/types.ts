@@ -78,7 +78,11 @@ export type PortfolioSummary = {
   profitAmount: number
   profitRate: number
   holdingCount: number
-  isDefault: boolean 
+  isDefault: boolean
+  // ===== 추가: 종료된 방의 최종 등수/총 인원수 (진행중인 방은 null) =====
+  finalRank: number | null
+  totalParticipantCount: number | null
+  // ===== 추가 끝 =====
 }
 
 export type PortfolioHolding = {
