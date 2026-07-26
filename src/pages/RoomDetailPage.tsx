@@ -239,7 +239,7 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
               </div>
             </div>
 
-            {room.inviteCode && (
+            {room.inviteCode && room.status === 'recruiting' && (
               <div className="invite-code-box">
                 <span className="field-label">초대코드</span>
                 <code>{room.inviteCode}</code>
