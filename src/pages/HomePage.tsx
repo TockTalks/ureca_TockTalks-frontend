@@ -7,6 +7,7 @@ import { HISTORY_ZONE_END, usePriceStream, type PricePoint } from '../lib/priceS
 import type { FavoriteStock, PortfolioDetail, PortfolioHolding, PortfolioSummary } from '../lib/types'
 import { useAuth } from '../lib/useAuth'
 import { useDefaultRoomRanking } from '../lib/useRanking'
+import { formatRankingBalance } from '../lib/ranking'
 import './HomePage.css'
 
 type FeaturedStock = {
@@ -458,7 +459,7 @@ function HomePage() {
                           {entry.rank ?? '-'}
                         </span>
                         <span className="ranking-nickname">{entry.nickname}</span>
-                        <span className="ranking-balance">{formatMoney(entry.balance)}</span>
+                        <span className="ranking-balance">{formatRankingBalance(entry)}</span>
                       </li>
                     ))}
                   </ol>
@@ -469,7 +470,7 @@ function HomePage() {
                         {myRanking.rank ?? '-'}
                       </span>
                       <span className="ranking-nickname">{myRanking.nickname}</span>
-                      <span className="ranking-balance">{formatMoney(myRanking.balance)}</span>
+                      <span className="ranking-balance">{formatRankingBalance(myRanking)}</span>
                     </div>
                   )}
                 </>
