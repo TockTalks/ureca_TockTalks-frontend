@@ -21,13 +21,23 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
   const [finalRanking, setFinalRanking] = useState<FinalRanking[]>([])
   const [myPortfolio, setMyPortfolio] = useState<PortfolioSummary | null>(null)
   const [liveRanking, setLiveRanking] = useState<RankedEntry[]>([])
+  const [battleStarted, setBattleStarted] = useState(false)
+  const canLeaveRoom = Boolean(
+    room &&
+      !room.isDefault &&
+      room.status === 'recruiting' &&
+      room.startAt &&
+      !battleStarted &&
+      Number.isFinite(new Date(room.startAt).getTime()) &&
+      Date.now() < new Date(room.startAt).getTime(),
+  )
 
   const load = () => {
     api
       .get<Room>(`/api/rooms/${roomId}`)
       .then((data) => {
         setRoom(data)
-        if (data.status !== 'ongoing') {
+        if (data.status === 'closed') {
           api
             .get<FinalRanking[]>(`/api/rooms/${roomId}/rankings/final`)
             .then(setFinalRanking)
@@ -47,6 +57,37 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
   }
 
   useEffect(load, [roomId, me])
+
+  useEffect(() => {
+    if (!room?.startAt) {
+      setBattleStarted(true)
+      return
+    }
+
+    const startTime = new Date(room.startAt).getTime()
+    if (!Number.isFinite(startTime)) {
+      setBattleStarted(true)
+      return
+    }
+
+    let timeoutId: number | undefined
+
+    const refreshBattleStarted = () => {
+      const remaining = startTime - Date.now()
+      if (remaining <= 0) {
+        setBattleStarted(true)
+        return
+      }
+
+      setBattleStarted(false)
+      timeoutId = window.setTimeout(refreshBattleStarted, Math.min(remaining, 60_000))
+    }
+
+    refreshBattleStarted()
+    return () => {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId)
+    }
+  }, [room?.startAt])
 
   useEffect(() => {
     if (!me || !isParticipant || room?.status !== 'ongoing') {
@@ -196,7 +237,7 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
               <p className="rooms-empty">
                 <a href="/login">로그인</a> 후 참가할 수 있습니다.
               </p>
-            ) : room.status !== 'ongoing' ? (
+            ) : room.status === 'closed' ? (
               finalRanking.length === 0 ? (
                 <p className="rooms-empty">종료된 방입니다.</p>
               ) : (
@@ -256,7 +297,7 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
                   </>
                 )}
 
-                <section className="rooms-section">
+                {room.status === 'ongoing' && <section className="rooms-section">
                   <div className="rooms-section-header">
                     <h2>방 랭킹</h2>
                   </div>
@@ -280,9 +321,9 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
                       ))}
                     </ol>
                   )}
-                </section>
+                </section>}
 
-                {!room.isDefault && (
+                {canLeaveRoom && (
                   <div className="room-detail-actions">
                     <button type="button" className="btn btn-default" disabled={busy} onClick={handleLeave}>
                       탈퇴하기
@@ -290,6 +331,8 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
                   </div>
                 )}
               </>
+            ) : room.status !== 'recruiting' ? (
+              <p className="rooms-empty">이미 시작된 방입니다.</p>
             ) : room.isPublic ? (
               <div className="room-detail-actions">
                 <button type="button" className="btn btn-primary" disabled={busy} onClick={handleJoin}>
