@@ -7,8 +7,19 @@ export function toRankedEntries(list: RoomRanking[]): RankedEntry[] {
   const traded = [...list.filter((entry) => entry.hasTraded)].sort((a, b) => b.balance - a.balance)
   const untraded = [...list.filter((entry) => !entry.hasTraded)].sort((a, b) => b.balance - a.balance)
 
+  // ===== 변경: balance가 같으면 동순위(1,1,3...), 다르면 순번대로 등수 매기기 =====
+  const rankedTraded: RankedEntry[] = []
+  let rank = 1
+  traded.forEach((entry, index) => {
+    if (index > 0 && traded[index - 1].balance !== entry.balance) {
+      rank = index + 1
+    }
+    rankedTraded.push({ ...entry, rank })
+  })
+  // ===== 변경 끝 =====
+
   return [
-    ...traded.map((entry, index) => ({ ...entry, rank: index + 1 })),
+    ...rankedTraded,
     ...untraded.map((entry) => ({ ...entry, rank: null })),
   ]
 }
