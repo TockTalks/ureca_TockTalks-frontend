@@ -6,6 +6,7 @@ import { useAuth } from '../lib/useAuth'
 import type { FinalRanking, PortfolioSummary, Room } from '../lib/types'
 import { useRoomLiveRanking } from '../lib/useRanking'
 import { useCountdown } from '../lib/useCountdown'
+import { useFlipRows } from '../lib/useFlipRows'
 import { formatDate, formatMoney, formatPercent, formatRemaining, statusBadgeClass, statusLabel } from '../lib/format'
 import './RoomPages.css'
 import './RankingPage.css'
@@ -26,6 +27,7 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
   const { ranking: liveRanking } = useRoomLiveRanking(isRoomLive ? roomId : null)
   const remainingMs = useCountdown(room?.status === 'ongoing' ? room.endAt : null)
   const isEndingSoon = remainingMs !== null && remainingMs <= 60_000
+  const rankRowRef = useFlipRows(liveRanking.map((entry) => entry.memberId))
   const canLeaveRoom = Boolean(
     room &&
       !room.isDefault &&
@@ -309,6 +311,7 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
                       {liveRanking.map((entry) => (
                         <li
                           key={entry.memberId}
+                          ref={rankRowRef(entry.memberId)}
                           className={`ranking-row ranking-page-item ${
                             me?.id === entry.memberId ? 'ranking-page-item-me' : ''
                           }`}
