@@ -225,10 +225,10 @@ function PortfolioPage() {
           <>
             <section className="rooms-section">
               <div className="rooms-section-header">
-                <h2>참여중인 방</h2>
+                <h2>진행 중인 배틀</h2>
               </div>
               {activePortfolios.length === 0 ? (
-                <p className="rooms-empty">참여중인 방이 없습니다.</p>
+                <p className="rooms-empty">진행 중인 배틀이 없습니다.</p>
               ) : (
                 <div className="room-list">{activePortfolios.map(renderPortfolioCard)}</div>
               )}
