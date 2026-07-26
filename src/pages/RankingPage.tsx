@@ -1,7 +1,7 @@
 import Navbar from '../components/Navbar'
 import { useAuth } from '../lib/useAuth'
 import { useDefaultRoomRanking } from '../lib/useRanking'
-import { formatMoney } from '../lib/format'
+import { formatRankingBalance } from '../lib/ranking'
 import './RankingPage.css'
 
 function RankingPage() {
@@ -32,7 +32,7 @@ function RankingPage() {
                 {myRanking.rank ?? '-'}
               </span>
               <span className="ranking-nickname">{myRanking.nickname}</span>
-              <span className="ranking-balance">{formatMoney(myRanking.balance)}</span>
+              <span className="ranking-balance">{formatRankingBalance(myRanking)}</span>
             </div>
           </div>
         )}
@@ -52,7 +52,7 @@ function RankingPage() {
                   {entry.rank ?? '-'}
                 </span>
                 <span className="ranking-nickname">{entry.nickname}</span>
-                <span className="ranking-balance">{formatMoney(entry.balance)}</span>
+                <span className="ranking-balance">{formatRankingBalance(entry)}</span>
               </li>
             ))}
           </ol>

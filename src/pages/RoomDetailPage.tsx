@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import Navbar from '../components/Navbar'
+import PodiumReveal from '../components/PodiumReveal'
 import { api, ApiError } from '../lib/apiClient'
 import { useAuth } from '../lib/useAuth'
 import type { FinalRanking, PortfolioSummary, Room } from '../lib/types'
 import { useRoomLiveRanking } from '../lib/useRanking'
+import { formatRankingBalance } from '../lib/ranking'
 import { useCountdown } from '../lib/useCountdown'
 import { useFlipRows } from '../lib/useFlipRows'
 import { formatDate, formatMoney, formatPercent, formatRemaining, statusBadgeClass, statusLabel } from '../lib/format'
@@ -21,6 +23,7 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [finalRanking, setFinalRanking] = useState<FinalRanking[]>([])
+  const [showPodiumReveal, setShowPodiumReveal] = useState(false)
   const [myPortfolio, setMyPortfolio] = useState<PortfolioSummary | null>(null)
   const [battleStarted, setBattleStarted] = useState(false)
   const isRoomLive = Boolean(me && isParticipant && room?.status === 'ongoing')
@@ -46,7 +49,10 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
         if (data.status === 'closed') {
           api
             .get<FinalRanking[]>(`/api/rooms/${roomId}/rankings/final`)
-            .then(setFinalRanking)
+            .then((ranking) => {
+              setFinalRanking(ranking)
+              if (ranking.length > 0) setShowPodiumReveal(true)
+            })
             .catch(() => setFinalRanking([]))
         }
       })
@@ -94,6 +100,20 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
       if (timeoutId !== undefined) window.clearTimeout(timeoutId)
     }
   }, [room?.startAt])
+
+  // 카운트다운이 0이 되는 순간 방 정보를 다시 불러와 종료 처리(백엔드가 조회 시점에 종료시킴)를 반영한다.
+  useEffect(() => {
+    if (remainingMs === 0 && room?.status === 'ongoing') {
+      load()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remainingMs])
+
+  useEffect(() => {
+    if (!showPodiumReveal) return
+    const timeoutId = window.setTimeout(() => setShowPodiumReveal(false), 5000)
+    return () => window.clearTimeout(timeoutId)
+  }, [showPodiumReveal])
 
   useEffect(() => {
     if (!isRoomLive) {
@@ -180,6 +200,8 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
   return (
     <>
       <Navbar me={me} authChecked={authChecked} onLogout={logout} />
+
+      {showPodiumReveal && finalRanking.length > 0 && <PodiumReveal entries={finalRanking} />}
 
       <main className="rooms-main">
         {loadError && <p className="alert-error">{loadError}</p>}
@@ -320,7 +342,7 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
                             {entry.rank ?? '-'}
                           </span>
                           <span className="ranking-nickname">{entry.nickname}</span>
-                          <span className="ranking-balance">{formatMoney(entry.balance)}</span>
+                          <span className="ranking-balance">{formatRankingBalance(entry)}</span>
                         </li>
                       ))}
                     </ol>

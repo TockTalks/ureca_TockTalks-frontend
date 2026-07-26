@@ -260,3 +260,144 @@
   font-weight: 600;
   margin-top: 4px;
 }
+
+/* 방 종료 시 상위 3명을 잠깐 보여주고 사라지는 포디움 리빌 연출 */
+.podium-reveal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  animation: podium-overlay-fade-out 300ms ease forwards;
+  animation-delay: 4700ms;
+}
+
+.podium-reveal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 32px 24px;
+  animation: podium-overlay-in 300ms ease;
+}
+
+.podium-reveal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.05em;
+}
+
+.podium-stands {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.podium-stand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.podium-stand-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: #fff;
+  font-size: 13px;
+  opacity: 0;
+  animation: podium-info-fade 300ms ease both;
+}
+
+.podium-stand-nickname {
+  font-weight: 600;
+}
+
+.podium-stand-block {
+  width: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
+  font-weight: 700;
+  font-size: 20px;
+  opacity: 0;
+  transform: scaleY(0);
+  transform-origin: bottom;
+  animation: podium-block-rise 450ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.podium-stand-1 .podium-stand-info,
+.podium-stand-1 .podium-stand-block {
+  animation-delay: 500ms;
+}
+.podium-stand-1 .podium-stand-block {
+  height: 120px;
+  background: linear-gradient(180deg, #ffe58f, #d4a017);
+  color: #663c00;
+}
+
+.podium-stand-2 .podium-stand-info,
+.podium-stand-2 .podium-stand-block {
+  animation-delay: 200ms;
+}
+.podium-stand-2 .podium-stand-block {
+  height: 90px;
+  background: linear-gradient(180deg, #f0f0f0, #bfbfbf);
+  color: #434343;
+}
+
+.podium-stand-3 .podium-stand-info,
+.podium-stand-3 .podium-stand-block {
+  animation-delay: 0ms;
+}
+.podium-stand-3 .podium-stand-block {
+  height: 70px;
+  background: linear-gradient(180deg, #ffd8a8, #d2691e);
+  color: #5c2c06;
+}
+
+@keyframes podium-block-rise {
+  from {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes podium-info-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes podium-overlay-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes podium-overlay-fade-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
