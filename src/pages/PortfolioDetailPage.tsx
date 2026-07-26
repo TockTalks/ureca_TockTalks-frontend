@@ -255,12 +255,13 @@ function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number 
                           </td>
                           <td>{formatMoney(h.totalAssetValue)}</td>
                           <td>
-                            {/* 매도 인증글은 매도 체결 건만 첨부 가능 (백엔드 제약) */}
-                            {h.tradeType === 'SELL' && h.transactionId != null && (
+                            {/* ===== 변경: 매수 히스토리에도 공유 버튼 표시 (매수 인증글 백엔드 지원은 커뮤니티 팀원 작업 예정) ===== */}
+                            {h.transactionId != null && (
                               <button type="button" className="btn btn-text" onClick={() => handleShareHistory(h)}>
                                 공유
                               </button>
                             )}
+                            {/* ===== 변경 끝 ===== */}
                           </td>
                           {/* ===== 추가 끝 ===== */}
                         </tr>
