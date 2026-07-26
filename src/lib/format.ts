@@ -38,6 +38,18 @@ export function statusBadgeClass(status: string): string {
   }
 }
 
+export function formatRemaining(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000))
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+
+  if (hours > 0) {
+    return `${hours}시간 ${String(minutes).padStart(2, '0')}분`
+  }
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
 export function formatPercent(rate: number): string {
   const sign = rate > 0 ? '+' : ''
   return `${sign}${rate.toFixed(2)}%`
@@ -98,6 +110,12 @@ export function reportStatusBadgeClass(status: string): string {
 
 export function formatReportDate(iso: string): string {
   return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
+}
+
+// 인증글의 매도 내역을 "종목명 N주 매도" 형태로 보여준다. stockName이 없으면(옛 데이터) 종목코드로 대체.
+export function postCertificateLabel(post: { stockCode: string | null; stockName: string | null; quantity: number | null }): string {
+  const name = post.stockName ?? post.stockCode ?? '종목'
+  return post.quantity != null ? `${name} ${post.quantity.toLocaleString('ko-KR')}주 매도` : `${name} 매도`
 }
 
 // 목록에서는 내용 첫 줄을 제목처럼 보여주고, 나머지는 미리보기로 노출한다.

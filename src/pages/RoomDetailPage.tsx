@@ -5,7 +5,8 @@ import { api, ApiError } from '../lib/apiClient'
 import { useAuth } from '../lib/useAuth'
 import type { FinalRanking, PortfolioSummary, Room } from '../lib/types'
 import { useRoomLiveRanking } from '../lib/useRanking'
-import { formatDate, formatMoney, formatPercent, statusBadgeClass, statusLabel } from '../lib/format'
+import { useCountdown } from '../lib/useCountdown'
+import { formatDate, formatMoney, formatPercent, formatRemaining, statusBadgeClass, statusLabel } from '../lib/format'
 import './RoomPages.css'
 import './RankingPage.css'
 
@@ -23,6 +24,8 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
   const [battleStarted, setBattleStarted] = useState(false)
   const isRoomLive = Boolean(me && isParticipant && room?.status === 'ongoing')
   const { ranking: liveRanking } = useRoomLiveRanking(isRoomLive ? roomId : null)
+  const remainingMs = useCountdown(room?.status === 'ongoing' ? room.endAt : null)
+  const isEndingSoon = remainingMs !== null && remainingMs <= 60_000
   const canLeaveRoom = Boolean(
     room &&
       !room.isDefault &&
@@ -286,6 +289,13 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
                       </a>
                     </div>
                   </>
+                )}
+
+                {room.status === 'ongoing' && remainingMs !== null && (
+                  <div className={`room-countdown ${isEndingSoon ? 'room-countdown-urgent' : ''}`}>
+                    <span className="room-countdown-label">종료까지</span>
+                    <span className="room-countdown-value">{formatRemaining(remainingMs)}</span>
+                  </div>
                 )}
 
                 {room.status === 'ongoing' && <section className="rooms-section">

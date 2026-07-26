@@ -201,6 +201,47 @@
   color: var(--color-error);
 }
 
+.room-countdown {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  background: var(--color-bg-layout);
+  margin-bottom: 16px;
+}
+
+.room-countdown-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.room-countdown-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.room-countdown-urgent {
+  background: var(--color-rise-bg);
+  animation: room-countdown-pulse 1s ease-in-out infinite;
+}
+
+.room-countdown-urgent .room-countdown-value {
+  color: var(--color-error);
+}
+
+@keyframes room-countdown-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
 .history-rank-badge {
   display: flex;
   align-items: center;
