@@ -3,8 +3,8 @@ import type { FormEvent } from 'react'
 import Navbar from '../components/Navbar'
 import { api, ApiError } from '../lib/apiClient'
 import { useAuth } from '../lib/useAuth'
-import type { FinalRanking, PortfolioSummary, Room, RoomRanking } from '../lib/types'
-import { toRankedEntries, type RankedEntry } from '../lib/ranking'
+import type { FinalRanking, PortfolioSummary, Room } from '../lib/types'
+import { useRoomLiveRanking } from '../lib/useRanking'
 import { formatDate, formatMoney, formatPercent, statusBadgeClass, statusLabel } from '../lib/format'
 import './RoomPages.css'
 import './RankingPage.css'
@@ -20,8 +20,9 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
   const [busy, setBusy] = useState(false)
   const [finalRanking, setFinalRanking] = useState<FinalRanking[]>([])
   const [myPortfolio, setMyPortfolio] = useState<PortfolioSummary | null>(null)
-  const [liveRanking, setLiveRanking] = useState<RankedEntry[]>([])
   const [battleStarted, setBattleStarted] = useState(false)
+  const isRoomLive = Boolean(me && isParticipant && room?.status === 'ongoing')
+  const { ranking: liveRanking } = useRoomLiveRanking(isRoomLive ? roomId : null)
   const canLeaveRoom = Boolean(
     room &&
       !room.isDefault &&
@@ -90,9 +91,8 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
   }, [room?.startAt])
 
   useEffect(() => {
-    if (!me || !isParticipant || room?.status !== 'ongoing') {
+    if (!isRoomLive) {
       setMyPortfolio(null)
-      setLiveRanking([])
       return
     }
 
@@ -107,19 +107,10 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
         if (!cancelled) setMyPortfolio(null)
       })
 
-    api
-      .get<RoomRanking[]>(`/api/rooms/${roomId}/ranking`)
-      .then((data) => {
-        if (!cancelled) setLiveRanking(toRankedEntries(data))
-      })
-      .catch(() => {
-        if (!cancelled) setLiveRanking([])
-      })
-
     return () => {
       cancelled = true
     }
-  }, [roomId, me, isParticipant, room?.status])
+  }, [roomId, isRoomLive])
 
   const handleJoin = async () => {
     setErrorMessage(null)
