@@ -106,11 +106,11 @@ function PortfolioPage() {
         <span className={statusBadgeClass(p.roomStatus)}>{statusLabel(p.roomStatus)}</span>
       </div>
 
-      {/* ===== 변경: 종료된 방은 최종 등수/총 인원수 · 최종 수익률 · 평가자산 세 줄로 표시 ===== */}
-      {p.roomStatus === 'closed' ? (
+      {/* ===== 변경: 진행중/종료 방 모두 등수·수익률·평가자산 세 줄로 표시 (진행중="현재", 종료="최종") ===== */}
+      {p.roomStatus === 'closed' || p.roomStatus === 'ongoing' ? (
         <div className="portfolio-room-final-stats">
           <div className="portfolio-room-stat-row">
-            <span className="portfolio-room-asset-label">최종 등수</span>
+            <span className="portfolio-room-asset-label">{p.roomStatus === 'closed' ? '최종 등수' : '현재 등수'}</span>
             <strong>
               {p.finalRank != null && p.totalParticipantCount != null
                 ? `${p.finalRank}위 / ${p.totalParticipantCount}명`
@@ -118,7 +118,7 @@ function PortfolioPage() {
             </strong>
           </div>
           <div className="portfolio-room-stat-row">
-            <span className="portfolio-room-asset-label">최종 수익률</span>
+            <span className="portfolio-room-asset-label">{p.roomStatus === 'closed' ? '최종 수익률' : '현재 수익률'}</span>
             <strong className={profitTextClass(p.profitAmount)}>{formatPercent(p.profitRate)}</strong>
           </div>
           <div className="portfolio-room-stat-row">
