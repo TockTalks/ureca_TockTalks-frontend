@@ -112,6 +112,12 @@ export function formatReportDate(iso: string): string {
   return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
 }
 
+// 인증글의 매도 내역을 "종목명 N주 매도" 형태로 보여준다. stockName이 없으면(옛 데이터) 종목코드로 대체.
+export function postCertificateLabel(post: { stockCode: string | null; stockName: string | null; quantity: number | null }): string {
+  const name = post.stockName ?? post.stockCode ?? '종목'
+  return post.quantity != null ? `${name} ${post.quantity.toLocaleString('ko-KR')}주 매도` : `${name} 매도`
+}
+
 // 목록에서는 내용 첫 줄을 제목처럼 보여주고, 나머지는 미리보기로 노출한다.
 export function splitPostTitle(content: string): { title: string; body: string } {
   const trimmed = content.trim()

@@ -24,12 +24,17 @@ function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number 
   const [historyPage, setHistoryPage] = useState(0) // ===== 추가: 자산 변동 히스토리 페이징 =====
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  // ===== 추가: 자산 변동 히스토리 공유 버튼 - 클릭까지만 구현, 실제 이동 로직은 커뮤니티 담당 팀원이 연결 예정 =====
-  const handleShareHistory = (transactionId: number | null) => {
-    // TODO: 커뮤니티 담당 팀원이 이어서 구현 - /community/write?transactionId=... 로 이동해 인증글 작성
-    console.log('공유 버튼 클릭 - transactionId:', transactionId)
+  // 매도 내역의 공유 버튼 - 해당 거래를 첨부한 채로 글쓰기 화면으로 이동
+  const handleShareHistory = (h: PortfolioHistoryPoint) => {
+    if (h.transactionId == null) return
+    const params = new URLSearchParams({ transactionId: String(h.transactionId) })
+    if (h.stockCode) params.set('stockCode', h.stockCode)
+    if (h.stockName) params.set('stockName', h.stockName)
+    if (h.quantity != null) params.set('quantity', String(h.quantity))
+    if (h.profitAmount != null) params.set('profitAmount', String(h.profitAmount))
+    if (h.profitRate != null) params.set('profitRate', String(h.profitRate))
+    window.location.href = `/community/new?${params.toString()}`
   }
-  // ===== 추가 끝 =====
 
   useEffect(() => {
     if (authChecked && !me) {
@@ -250,15 +255,12 @@ function PortfolioDetailPage({ roomParticipantId }: { roomParticipantId: number 
                           </td>
                           <td>{formatMoney(h.totalAssetValue)}</td>
                           <td>
-                            {/* ===== 변경: 우선 클릭 가능하도록 disabled 제거 - 실제 연결은 커뮤니티 담당 팀원이 진행 ===== */}
-                            <button
-                              type="button"
-                              className="btn btn-text"
-                              onClick={() => handleShareHistory(h.transactionId)}
-                            >
-                              공유
-                            </button>
-                            {/* ===== 변경 끝 ===== */}
+                            {/* 매도 인증글은 매도 체결 건만 첨부 가능 (백엔드 제약) */}
+                            {h.tradeType === 'SELL' && h.transactionId != null && (
+                              <button type="button" className="btn btn-text" onClick={() => handleShareHistory(h)}>
+                                공유
+                              </button>
+                            )}
                           </td>
                           {/* ===== 추가 끝 ===== */}
                         </tr>

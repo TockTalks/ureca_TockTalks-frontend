@@ -261,6 +261,39 @@
   gap: 8px;
 }
 
+.post-write-shared-trade {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.post-write-shared-trade .trade-certificate-card {
+  flex: 1;
+}
+
+/* 종목 N주 매도 +율% (금액원) 를 눈에 띄게 보여주는 카드 */
+.trade-certificate-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 14px 16px;
+  background: var(--color-bg-layout);
+  border-radius: var(--radius-control);
+}
+
+.trade-certificate-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.trade-certificate-value {
+  font-size: 17px;
+  font-weight: 700;
+}
+
 .badge-danger {
   color: var(--color-error);
   background: #fff2f0;

@@ -161,6 +161,8 @@ export type Post = {
   memberId: number
   content: string
   stockCode: string | null
+  stockName: string | null
+  quantity: number | null
   transactionId: number | null
   profitAmount: number | null
   profitRate: number | null

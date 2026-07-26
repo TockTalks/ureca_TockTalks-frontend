@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import Navbar from '../components/Navbar'
+import TradeCertificateCard from '../components/TradeCertificateCard'
 import { api, ApiError } from '../lib/apiClient'
 import { useAuth } from '../lib/useAuth'
 import type { Page, Post } from '../lib/types'
-import { formatShortDate, splitPostTitle } from '../lib/format'
+import { formatShortDate, postCertificateLabel, splitPostTitle } from '../lib/format'
 import './CommunityPages.css'
 
 const PAGE_SIZE = 10
@@ -89,7 +90,6 @@ function CommunityPage() {
 
 function PostCard({ post, isMe }: { post: Post; isMe: boolean }) {
   const { title, body } = splitPostTitle(post.content)
-  const profitPositive = (post.profitRate ?? 0) >= 0
 
   return (
     <a href={`/community/${post.id}`} className="card post-card">
@@ -102,10 +102,7 @@ function PostCard({ post, isMe }: { post: Post; isMe: boolean }) {
       {body && <p className="post-card-body">{body}</p>}
 
       {post.hasCertificate && (
-        <span className={`badge ${profitPositive ? 'badge-success' : 'badge-danger'}`}>
-          {post.stockCode} {profitPositive ? '+' : ''}
-          {post.profitRate}%
-        </span>
+        <TradeCertificateCard label={postCertificateLabel(post)} rate={post.profitRate ?? 0} amount={post.profitAmount ?? 0} />
       )}
 
       <div className="post-card-footer">
