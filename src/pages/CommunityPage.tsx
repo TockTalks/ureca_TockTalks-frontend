@@ -94,7 +94,7 @@ function PostCard({ post, isMe }: { post: Post; isMe: boolean }) {
   return (
     <a href={`/community/${post.id}`} className="card post-card">
       <div className="post-card-header">
-        <span className="post-card-author">{isMe ? '나' : `회원 ${post.memberId}`}</span>
+        <span className="post-card-author">{isMe ? '나' : post.nickname ?? `회원 ${post.memberId}`}</span>
         <span className="post-card-date">{formatShortDate(post.createAt)}</span>
       </div>
 

@@ -161,6 +161,7 @@ export type TradeHolding = {
 export type Post = {
   id: number
   memberId: number
+  nickname: string | null
   content: string
   stockCode: string | null
   stockName: string | null
@@ -180,6 +181,7 @@ export type CommunityComment = {
   id: number
   postId: number
   memberId: number
+  nickname: string | null
   content: string
   likeCount: number
   likedByMe: boolean
