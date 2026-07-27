@@ -124,61 +124,34 @@ function HomePage() {
     setPortfolioLoading(true)
     setPortfolioError(false)
 
+    // ===== 변경: 모든 방을 합산하지 않고 기본방(로비)만 보여줌 =====
     api
       .get<PortfolioSummary[]>('/api/portfolios')
       .then(async (portfolios) => {
-        const detailResults = await Promise.allSettled(
-          portfolios.map((portfolio) => {
-            if (portfolio.holdingCount === 0) {
-              return Promise.resolve<PortfolioDetail>({
-                ...portfolio,
-                holdings: [],
-              })
-            }
+        const defaultPortfolio = portfolios.find((portfolio) => portfolio.isDefault)
 
-            return api.get<PortfolioDetail>(
-              `/api/portfolios/${portfolio.roomParticipantId}`,
-            )
-          }),
-        )
+        if (!defaultPortfolio) {
+          if (!cancelled) setPortfolioOverview(null)
+          return
+        }
+
+        const detail =
+          defaultPortfolio.holdingCount === 0
+            ? ({ ...defaultPortfolio, holdings: [] } satisfies PortfolioDetail)
+            : await api.get<PortfolioDetail>(`/api/portfolios/${defaultPortfolio.roomParticipantId}`)
 
         if (cancelled) return
 
-        const portfolioSnapshots = portfolios.map((portfolio, index) => {
-          const detailResult = detailResults[index]
-
-          if (detailResult.status === 'fulfilled') {
-            return detailResult.value
-          }
-
-          return {
-            ...portfolio,
-            holdings: [],
-          } satisfies PortfolioDetail
-        })
-
-        const holdings = portfolioSnapshots.flatMap((portfolio) =>
-          portfolio.holdings.map((holding) => ({
-            ...holding,
-            roomName: portfolio.roomName,
-            roomParticipantId: portfolio.roomParticipantId,
-          })),
-        )
-
         setPortfolioOverview({
-          totalAssetValue: portfolioSnapshots.reduce(
-            (total, portfolio) => total + portfolio.totalAssetValue,
-            0,
-          ),
-          totalProfitAmount: portfolioSnapshots.reduce(
-            (total, portfolio) => total + portfolio.profitAmount,
-            0,
-          ),
-          totalHoldingCount: portfolioSnapshots.reduce(
-            (total, portfolio) => total + portfolio.holdingCount,
-            0,
-          ),
-          topHoldings: holdings
+          totalAssetValue: detail.totalAssetValue,
+          totalProfitAmount: detail.profitAmount,
+          totalHoldingCount: detail.holdingCount,
+          topHoldings: detail.holdings
+            .map((holding) => ({
+              ...holding,
+              roomName: detail.roomName,
+              roomParticipantId: detail.roomParticipantId,
+            }))
             .sort((left, right) => right.evaluationAmount - left.evaluationAmount)
             .slice(0, 3),
         })
@@ -192,6 +165,7 @@ function HomePage() {
       .finally(() => {
         if (!cancelled) setPortfolioLoading(false)
       })
+    // ===== 변경 끝 =====
 
     return () => {
       cancelled = true
