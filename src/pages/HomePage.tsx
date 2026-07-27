@@ -172,12 +172,10 @@ function HomePage() {
     }
   }, [authChecked, me])
 
-  const { points, latestPrice, snapshot, xAxisTicks } = usePriceStream(stockCode)
-  
-  const changeAmount = snapshot ? Number(snapshot.prdy_vrss) : null
-  const changeRate = snapshot ? Number(snapshot.prdy_ctrt) : null
-  const isUp = snapshot?.prdy_vrss_sign === '1' || snapshot?.prdy_vrss_sign === '2'
-  const isDown = snapshot?.prdy_vrss_sign === '4' || snapshot?.prdy_vrss_sign === '5'
+  const { points, latestPrice, xAxisTicks, changeAmount, changeRate } = usePriceStream(stockCode)
+
+  const isUp = changeAmount !== null && changeAmount > 0
+  const isDown = changeAmount !== null && changeAmount < 0
 
   const topRanking = ranking.slice(0, 10)
   const myRanking = me ? ranking.find((entry) => entry.memberId === me.id) : undefined
@@ -235,7 +233,7 @@ function HomePage() {
                       {isUp ? '▲' : '▼'} {Math.abs(changeAmount).toLocaleString('ko-KR')}
                       <span className="price-change-rate">
                         ({changeRate > 0 ? '+' : ''}
-                        {changeRate}%)
+                        {changeRate.toFixed(2)}%)
                       </span>
                     </span>
                   )}

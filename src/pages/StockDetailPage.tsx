@@ -195,12 +195,10 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
     }
   }
 
-  const { points, latestPrice, snapshot, xAxisTicks } = usePriceStream(stockCode)
+  const { points, latestPrice, xAxisTicks, changeAmount, changeRate } = usePriceStream(stockCode)
 
-  const changeAmount = snapshot ? Number(snapshot.prdy_vrss) : null
-  const changeRate = snapshot ? Number(snapshot.prdy_ctrt) : null
-  const isUp = snapshot?.prdy_vrss_sign === '1' || snapshot?.prdy_vrss_sign === '2'
-  const isDown = snapshot?.prdy_vrss_sign === '4' || snapshot?.prdy_vrss_sign === '5'
+  const isUp = changeAmount !== null && changeAmount > 0
+  const isDown = changeAmount !== null && changeAmount < 0
 
   const parsedQuantity = Number(quantity)
   const isValidQuantity = Number.isSafeInteger(parsedQuantity) && parsedQuantity > 0
@@ -359,7 +357,7 @@ function StockDetailPage({ stockCode }: { stockCode: string }) {
                   {changeAmount !== null && changeRate !== null && (isUp || isDown) && (
                     <span className={isUp ? 'stock-price-up' : 'stock-price-down'}>
                       {isUp ? '▲' : '▼'} {Math.abs(changeAmount).toLocaleString('ko-KR')}원
-                      {' '}({changeRate > 0 ? '+' : ''}{changeRate}%)
+                      {' '}({changeRate > 0 ? '+' : ''}{changeRate.toFixed(2)}%)
                     </span>
                   )}
                 </div>

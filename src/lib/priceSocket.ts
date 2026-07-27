@@ -74,10 +74,15 @@ export function usePriceStream(stockCode: string) {
   const [latestPrice, setLatestPrice] = useState<number | null>(null)
   const [snapshot, setSnapshot] = useState<PriceSnapshot | null>(null)
   const lastPointAtRef = useRef(0)
+  // 전일 종가는 초기 스냅샷에서 한 번만 구해두고, 실시간 틱마다 등락폭/등락률을 직접 재계산한다.
+  // (실시간 웹소켓 틱은 가격만 오고 전일대비 값은 안 실려 있어서, snapshot의 prdy_vrss/prdy_ctrt를
+  // 그대로 쓰면 첫 스냅샷 시점 값에 멈춰버린다.)
+  const prevCloseRef = useRef<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
     lastPointAtRef.current = 0
+    prevCloseRef.current = null
     setHistoryPoints([])
     setLivePoints([])
     setLatestPrice(null)
@@ -127,6 +132,10 @@ export function usePriceStream(stockCode: string) {
         if (cancelled) return
         setSnapshot(data)
         const price = Number(data.stck_prpr)
+        const prevVrss = Number(data.prdy_vrss)
+        if (Number.isFinite(price) && Number.isFinite(prevVrss)) {
+          prevCloseRef.current = price - prevVrss
+        }
         appendLivePoint(price)
       } catch {
         // 현재가 조회 실패는 무시하고 실시간 스트림에 맡깁니다.
@@ -163,6 +172,15 @@ export function usePriceStream(stockCode: string) {
     () => [...buildHistoryAxisTicks(historyPoints), ...LIVE_AXIS_TICKS],
     [historyPoints],
   )
+  // 등락폭/등락률은 전일 종가 대비로 매 틱 재계산 - snapshot에 박힌 값이 아니라 항상 최신 latestPrice 기준.
+  const changeAmount = useMemo(() => {
+    if (latestPrice === null || prevCloseRef.current === null) return null
+    return latestPrice - prevCloseRef.current
+  }, [latestPrice])
+  const changeRate = useMemo(() => {
+    if (latestPrice === null || !prevCloseRef.current) return null
+    return ((latestPrice - prevCloseRef.current) / prevCloseRef.current) * 100
+  }, [latestPrice])
 
-  return { points, latestPrice, snapshot, xAxisTicks }
+  return { points, latestPrice, snapshot, xAxisTicks, changeAmount, changeRate }
 }
