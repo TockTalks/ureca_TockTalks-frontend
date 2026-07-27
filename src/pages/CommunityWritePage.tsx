@@ -84,12 +84,12 @@ function CommunityWritePage() {
         <form className="card post-write-form" onSubmit={handleSubmit}>
           {sharedTrade && (
             <div className="field">
-              <span className="field-label">첨부된 매도 내역</span>
+              <span className="field-label">첨부된 {sharedTrade.profitRate != null ? '매도' : '매수'} 내역</span>
               <div className="post-write-shared-trade">
                 <TradeCertificateCard
                   label={postCertificateLabel(sharedTrade)}
-                  rate={sharedTrade.profitRate ?? 0}
-                  amount={sharedTrade.profitAmount ?? 0}
+                  rate={sharedTrade.profitRate}
+                  amount={sharedTrade.profitAmount}
                 />
                 <button type="button" className="btn btn-text" onClick={handleDetachSharedTrade}>
                   해제

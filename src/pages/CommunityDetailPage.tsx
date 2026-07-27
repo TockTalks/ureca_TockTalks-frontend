@@ -216,7 +216,7 @@ function CommunityDetailPage({ postId }: { postId: number }) {
             </div>
 
             {!isEditingPost && post.hasCertificate && (
-              <TradeCertificateCard label={postCertificateLabel(post)} rate={post.profitRate ?? 0} amount={post.profitAmount ?? 0} />
+              <TradeCertificateCard label={postCertificateLabel(post)} rate={post.profitRate} amount={post.profitAmount} />
             )}
 
             {errorMessage && <p className="alert-error">{errorMessage}</p>}

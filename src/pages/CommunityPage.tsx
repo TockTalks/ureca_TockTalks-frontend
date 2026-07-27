@@ -102,7 +102,7 @@ function PostCard({ post, isMe }: { post: Post; isMe: boolean }) {
       {body && <p className="post-card-body">{body}</p>}
 
       {post.hasCertificate && (
-        <TradeCertificateCard label={postCertificateLabel(post)} rate={post.profitRate ?? 0} amount={post.profitAmount ?? 0} />
+        <TradeCertificateCard label={postCertificateLabel(post)} rate={post.profitRate} amount={post.profitAmount} />
       )}
 
       <div className="post-card-footer">

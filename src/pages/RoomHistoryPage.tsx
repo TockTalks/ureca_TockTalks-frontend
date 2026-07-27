@@ -50,10 +50,10 @@ function RoomHistoryPage() {
                 <div className="room-card-header">
                   <h3>{entry.roomName}</h3>
                   <span className="history-rank-badge">
-                    <span className={`ranking-rank ${entry.finalRank <= 3 ? `ranking-rank-${entry.finalRank}` : ''}`}>
-                      {entry.finalRank}
+                    <span className={`ranking-rank ${entry.hasTraded && entry.finalRank <= 3 ? `ranking-rank-${entry.finalRank}` : ''}`}>
+                      {entry.hasTraded ? entry.finalRank : '-'}
                     </span>
-                    등
+                    {entry.hasTraded && '등'}
                   </span>
                 </div>
                 <div className="room-card-meta">
@@ -61,10 +61,16 @@ function RoomHistoryPage() {
                   <span>참가자 {entry.participantCount}명</span>
                 </div>
                 <div className="history-card-result">
-                  <span>{formatMoney(entry.finalAsset)}</span>
-                  <span className={profitTextClass(entry.finalReturnRate)}>
-                    {formatPercent(entry.finalReturnRate)}
-                  </span>
+                  {entry.hasTraded ? (
+                    <>
+                      <span>{formatMoney(entry.finalAsset)}</span>
+                      <span className={profitTextClass(entry.finalReturnRate)}>
+                        {formatPercent(entry.finalReturnRate)}
+                      </span>
+                    </>
+                  ) : (
+                    <span>-</span>
+                  )}
                 </div>
               </a>
             ))}

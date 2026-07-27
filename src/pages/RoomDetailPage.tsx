@@ -31,6 +31,8 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
   const remainingMs = useCountdown(room?.status === 'ongoing' ? room.endAt : null)
   const isEndingSoon = remainingMs !== null && remainingMs <= 60_000
   const rankRowRef = useFlipRows(liveRanking.map((entry) => entry.memberId))
+  // 거래 안 한 참가자(-)는 등수 순서와 상관없이 항상 맨 아래로 보낸다.
+  const sortedFinalRanking = [...finalRanking].sort((a, b) => Number(b.hasTraded) - Number(a.hasTraded))
   const canLeaveRoom = Boolean(
     room &&
       !room.isDefault &&
@@ -260,19 +262,19 @@ function RoomDetailPage({ roomId }: { roomId: number }) {
                 <p className="rooms-empty">종료된 방입니다.</p>
               ) : (
                 <ol className="card ranking-page-list">
-                  {finalRanking.map((entry) => (
+                  {sortedFinalRanking.map((entry) => (
                     <li
                       key={entry.memberId}
                       className={`ranking-row ranking-page-item ${
                         me?.id === entry.memberId ? 'ranking-page-item-me' : ''
                       }`}
                     >
-                      <span className={`ranking-rank ${entry.finalRank <= 3 ? `ranking-rank-${entry.finalRank}` : ''}`}>
-                        {entry.finalRank}
+                      <span className={`ranking-rank ${entry.hasTraded && entry.finalRank <= 3 ? `ranking-rank-${entry.finalRank}` : ''}`}>
+                        {entry.hasTraded ? entry.finalRank : '-'}
                       </span>
                       <span className="ranking-nickname">{entry.nickname}</span>
                       <span className="ranking-balance">
-                        {formatMoney(entry.finalAsset)} ({formatPercent(entry.finalReturnRate)})
+                        {entry.hasTraded ? `${formatMoney(entry.finalAsset)} (${formatPercent(entry.finalReturnRate)})` : '-'}
                       </span>
                     </li>
                   ))}

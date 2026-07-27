@@ -26,6 +26,7 @@ export type FinalRanking = {
   finalAsset: number
   finalReturnRate: number
   finalRank: number
+  hasTraded: boolean
 }
 
 export type RoomHistoryEntry = {
@@ -35,6 +36,7 @@ export type RoomHistoryEntry = {
   finalRank: number
   finalAsset: number
   finalReturnRate: number
+  hasTraded: boolean
   participantCount: number
 }
 
