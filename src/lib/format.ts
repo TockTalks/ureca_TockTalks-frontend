@@ -113,9 +113,16 @@ export function formatReportDate(iso: string): string {
 }
 
 // 인증글의 매도 내역을 "종목명 N주 매도" 형태로 보여준다. stockName이 없으면(옛 데이터) 종목코드로 대체.
-export function postCertificateLabel(post: { stockCode: string | null; stockName: string | null; quantity: number | null }): string {
+export function postCertificateLabel(post: {
+  stockCode: string | null
+  stockName: string | null
+  quantity: number | null
+  profitRate: number | null
+}): string {
   const name = post.stockName ?? post.stockCode ?? '종목'
-  return post.quantity != null ? `${name} ${post.quantity.toLocaleString('ko-KR')}주 매도` : `${name} 매도`
+  // 매도 인증은 손익(profitRate)이 항상 있고, 매수 인증은 손익 개념이 없어 null이다.
+  const verb = post.profitRate != null ? '매도' : '매수'
+  return post.quantity != null ? `${name} ${post.quantity.toLocaleString('ko-KR')}주 ${verb}` : `${name} ${verb}`
 }
 
 // 목록에서는 내용 첫 줄을 제목처럼 보여주고, 나머지는 미리보기로 노출한다.

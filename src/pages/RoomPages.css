@@ -290,10 +290,13 @@
   letter-spacing: 0.05em;
 }
 
+/* 항상 3칸(2등-1등-3등) 그리드로 고정해서, 2/3등이 없어도 1등이 항상 정중앙에 오게 한다 */
 .podium-stands {
-  display: flex;
-  align-items: flex-end;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 88px);
+  align-items: end;
+  justify-items: center;
+  column-gap: 16px;
 }
 
 .podium-stand {
