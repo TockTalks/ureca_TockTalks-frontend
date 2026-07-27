@@ -211,7 +211,7 @@ function CommunityDetailPage({ postId }: { postId: number }) {
         {post && (
           <article className="card post-detail-card">
             <div className="post-detail-header">
-              <span className="post-card-author">{me?.id === post.memberId ? '나' : `회원 ${post.memberId}`}</span>
+              <span className="post-card-author">{me?.id === post.memberId ? '나' : post.nickname ?? `회원 ${post.memberId}`}</span>
               <span className="post-card-date">{formatDate(post.createAt)}</span>
             </div>
 
@@ -313,7 +313,7 @@ function CommunityDetailPage({ postId }: { postId: number }) {
                   <li key={comment.id} className="comment-item">
                     <div className="comment-item-header">
                       <span className="post-card-author">
-                        {me?.id === comment.memberId ? '나' : `회원 ${comment.memberId}`}
+                        {me?.id === comment.memberId ? '나' : comment.nickname ?? `회원 ${comment.memberId}`}
                         {comment.edited && <span className="comment-edited-badge"> (수정됨)</span>}
                       </span>
                       <span className="post-card-date">{formatDate(comment.createdAt)}</span>
